@@ -1,13 +1,12 @@
 import copy
+import logging
 from collections import OrderedDict
 
 import six
 from flask_restplus import fields as frp_fields
 from flask_restplus.fields import Raw
 from flask_restplus.inputs import datetime_from_iso8601, datetime_from_rfc822
-
-from config import TIME_ZONE_FOR_SERIALIZER
-from utils.decorators import cached_property
+from exlib.base.decorators import cached_property
 
 try:
     from app import api_plus as api
@@ -16,7 +15,9 @@ try:
 except:
     from flask_restplus.model import OrderedModel as Model
 from flask_restplus.marshalling import marshal
-from app.logging_service import logger
+
+# from config import TIME_ZONE_FOR_SERIALIZER
+# from app.logging_service import logger
 
 ALL_FIELDS = '__all__'
 
@@ -189,10 +190,10 @@ def get_base_fields_by_mge_field(mongo_field):
             res = res(f)
         return res
 
-    if TIME_ZONE_FOR_SERIALIZER == "BEIJING":
-        datetimefield = DateBeijin
-    else:
-        datetimefield = frp_fields.DateTime
+    # if TIME_ZONE_FOR_SERIALIZER == "BEIJING":
+    #     datetimefield = DateBeijin
+    # else:
+    datetimefield = frp_fields.DateTime
 
     FieldsMapping = dict([(mge.StringField, frp_fields.String),
                           (mge.URLField, frp_fields.String),
@@ -427,4 +428,4 @@ class ModelSerializer(Serializer):
                 try:
                     marshal(item, new_fields)
                 except:
-                    logger.error("error marshal key: %s id: %s" % (key, item.pk))
+                    logging.error("error marshal key: %s id: %s" % (key, item.pk))

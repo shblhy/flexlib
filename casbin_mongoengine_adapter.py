@@ -1,29 +1,21 @@
-# copy from https://github.com/zhangbailong945/mongoengine_adapter/blob/master/casbin_mongoengine_adapter/adapter.py
-import casbin
 from casbin import persist
-from mongoengine import Document
-from mongoengine import connect
-from mongoengine.fields import IntField, StringField
-from app.database import BP_ARCHIVE
+from mongoengine import Document, connect, fields
 
 
 class CasbinRule(Document):
-    '''
-    CasbinRule model
-    '''
-
+    """
+        CasbinRule model
+    """
     __tablename__ = "casbin_rule"
 
-    ptype = StringField(required=True, max_length=255)
-    v0 = StringField(max_length=255)
-    v1 = StringField(max_length=255)
-    v2 = StringField(max_length=255)
-    v3 = StringField(max_length=255)
-    v4 = StringField(max_length=255)
-    v5 = StringField(max_length=255)
-    v6 = StringField(max_length=255)
-
-    meta = {'strict': True, 'db_alias': BP_ARCHIVE}
+    ptype = fields.StringField(required=True, max_length=255)
+    v0 = fields.StringField(max_length=255)
+    v1 = fields.StringField(max_length=255)
+    v2 = fields.StringField(max_length=255)
+    v3 = fields.StringField(max_length=255)
+    v4 = fields.StringField(max_length=255)
+    v5 = fields.StringField(max_length=255)
+    v6 = fields.StringField(max_length=255)
 
     def __str__(self):
         text = self.ptype
