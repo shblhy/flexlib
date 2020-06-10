@@ -1,13 +1,7 @@
 import copy
 from flask_restplus import fields as frp_fields
-
-try:
-    from app import api_plus as api
-
-    Model = api.model
-except:
-    from flask_restplus.model import OrderedModel as Model
-from flask_restplus.marshalling import marshal
+from werkzeug.local import LocalProxy
+from exlib.interface import CURRENT_REST_PLUS_CONFIG
 
 
 class BaseTable(object):
@@ -86,53 +80,6 @@ class BaseTable(object):
 DEFAULT_PAGE_SIZE = 20
 
 
-class QttTable(BaseTable):
-    TABLE_FORMAT = {
-        'code': frp_fields.Integer(attribute='_code'),
-        'message': frp_fields.String,
-        'total': frp_fields.Integer,
-        'current_page': frp_fields.Integer(attribute='page'),
-        'total_page': frp_fields.Integer(attribute='_total_page'),
-    }
-
-    @property
-    def _code(self):
-        if hasattr(self, 'code'):
-            return self.code
-        return 0
-
-    @property
-    def _total_page(self):
-        if hasattr(self, 'total_page'):
-            return self.total_page
-        return int((self.total - 1) / self.page_size) + 1 if self.page_size!= -1 else 1
-
-
-class SkvTable(BaseTable):
-    TABLE_FORMAT = {
-        'status': frp_fields.Integer(attribute='_status'),
-        'message': frp_fields.String,
-        'total': frp_fields.Integer,
-        # 'current_page': frp_fields.Integer(attribute='page'),
-        'total_page': frp_fields.Integer(attribute='_total_page'),
-    }
-
-    @property
-    def _status(self):
-        if hasattr(self, 'status'):
-            return self.status
-        return 200
-
-    @property
-    def _total_page(self):
-        if hasattr(self, 'total_page'):
-            return self.total_page
-        return int((self.total - 1) / self.page_size) + 1 if self.page_size!= -1 else 1
-
-
-Table = SkvTable
-
-
 class BaseResponse(object):
     FORMAT = {
         'message': frp_fields.String
@@ -175,36 +122,7 @@ class BaseResponse(object):
         return Model(name, res)
 
 
-class QttSucResponse(BaseResponse):
-    FORMAT = {
-        'code': frp_fields.Integer(attribute='_code'),
-        'message': frp_fields.String
-    }
-
-    @property
-    def _code(self):
-        if hasattr(self, 'code'):
-            return self.code
-        return 0
-
-
-class SkvSucResponse(BaseResponse):
-    FORMAT = {
-        'status': frp_fields.Integer(attribute='_status'),
-        'message': frp_fields.String
-    }
-
-    @property
-    def _status(self):
-        if hasattr(self, 'status'):
-            return self.status
-        return 200
-
-
-SucResponse = SkvSucResponse
-
-
-class ListResponse(SucResponse):
+class ListResponseMixin:
     @classmethod
     def get_fields(cls, serializer_cls, name=None, format={}):
         if name is None:
@@ -217,14 +135,51 @@ class ListResponse(SucResponse):
         return Model(name, res)
 
 
-BASE_ERROR_FIELD = api.model('error_400', {
-    'code': frp_fields.Integer,
-    'message': frp_fields.String
-})
+class BaseListResponse(BaseResponse, ListResponseMixin):
+    pass
 
-SKV_ERROR_FIELD = api.model('error_400', {
-    'status': frp_fields.Integer,
-    'message': frp_fields.String
-})
 
-error_fields = SKV_ERROR_FIELD
+def _get_base_error_field():
+    api = CURRENT_REST_PLUS_CONFIG.current_api
+    return api.model('error_400', {
+        'code': frp_fields.Integer,
+        'message': frp_fields.String
+    })
+
+
+def _get_skv_error_field():
+    api = CURRENT_REST_PLUS_CONFIG.current_api
+    return api.model('error_400', {
+        'status': frp_fields.Integer,
+        'message': frp_fields.String
+    })
+
+
+def _get_model():
+    api = CURRENT_REST_PLUS_CONFIG.current_api
+    return api.model
+
+
+def get_suc_response():
+    return CURRENT_REST_PLUS_CONFIG.response_cls
+
+
+SucResponse = LocalProxy(lambda: get_suc_response())
+
+
+def get_table_cls():
+    return CURRENT_REST_PLUS_CONFIG.table_cls
+
+
+Table = LocalProxy(lambda: get_table_cls())
+
+
+def get_list_response():
+    return CURRENT_REST_PLUS_CONFIG.list_response_cls
+
+
+ListResponse = LocalProxy(lambda: get_list_response())
+BASE_ERROR_FIELD = LocalProxy(lambda: _get_base_error_field())
+SKV_ERROR_FIELD = LocalProxy(lambda: _get_skv_error_field())
+Model = LocalProxy(lambda: _get_model())
+error_fields = LocalProxy(lambda: _get_skv_error_field())

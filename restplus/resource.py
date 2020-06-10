@@ -1,5 +1,5 @@
 from flask_restplus import Resource as OriResource
-from exlib.base.decorators import cached_property, request_logging
+from utils.decorators import cached_property
 from flask import render_template, flash, redirect, session, url_for, request, g
 from flask_login import login_required, login_user, logout_user, current_user
 from utils import pagination, get_object_or_404
@@ -7,6 +7,7 @@ from exlib.restviewset.response import JsonResponse, SuccessResponse, FailedResp
     PermError
 from exlib.restviewset.reqparse import RequestParser
 from werkzeug.exceptions import abort
+from utils.decorators import request_logging
 
 DEFAULT_ENGINE = 'mongo'
 

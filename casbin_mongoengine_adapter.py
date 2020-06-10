@@ -1,21 +1,30 @@
+# copy from https://github.com/zhangbailong945/mongoengine_adapter/blob/master/casbin_mongoengine_adapter/adapter.py
+import casbin
 from casbin import persist
-from mongoengine import Document, connect, fields
+from mongoengine import Document
+from mongoengine import connect
+from mongoengine.fields import IntField, StringField
+from werkzeug.local import LocalProxy
+from .interface import CURRENT_REST_PLUS_CONFIG
 
 
 class CasbinRule(Document):
-    """
-        CasbinRule model
-    """
+    '''
+    CasbinRule model
+    '''
+
     __tablename__ = "casbin_rule"
 
-    ptype = fields.StringField(required=True, max_length=255)
-    v0 = fields.StringField(max_length=255)
-    v1 = fields.StringField(max_length=255)
-    v2 = fields.StringField(max_length=255)
-    v3 = fields.StringField(max_length=255)
-    v4 = fields.StringField(max_length=255)
-    v5 = fields.StringField(max_length=255)
-    v6 = fields.StringField(max_length=255)
+    ptype = StringField(required=True, max_length=255)
+    v0 = StringField(max_length=255)
+    v1 = StringField(max_length=255)
+    v2 = StringField(max_length=255)
+    v3 = StringField(max_length=255)
+    v4 = StringField(max_length=255)
+    v5 = StringField(max_length=255)
+    v6 = StringField(max_length=255)
+
+    meta = {"abstract": True}
 
     def __str__(self):
         text = self.ptype
@@ -40,6 +49,13 @@ class CasbinRule(Document):
         return '<CasbinRule :"{}">'.format(str(self))
 
 
+def _get_current_casbin_rule_cls():
+    return CURRENT_REST_PLUS_CONFIG.casbin_rule_cls
+
+
+CurrentCasbinRule = LocalProxy(lambda: _get_current_casbin_rule_cls())
+
+
 class Adapter(persist.Adapter):
     """the interface for Casbin adapters."""
 
@@ -51,12 +67,12 @@ class Adapter(persist.Adapter):
         implementing add Interface for casbin \n
         load all policy rules from mongodb \n
         '''
-        lines = CasbinRule.objects()
+        lines = CurrentCasbinRule.objects()
         for line in lines:
             persist.load_policy_line(str(line), model)
 
     def _save_policy_line(self, ptype, rule):
-        line = CasbinRule(ptype=ptype)
+        line = CurrentCasbinRule(ptype=ptype)
         if len(rule) > 0:
             line.v0 = rule[0]
         if len(rule) > 1:
@@ -95,9 +111,9 @@ class Adapter(persist.Adapter):
             data = dict(zip(['v0', 'v1', 'v2', 'v3', 'v4', 'v5'], rule))
             for k in data:
                 condition[k] = data[k]
-            check = CasbinRule.objects(**condition)
+            check = CurrentCasbinRule.objects(**condition)
             if check.count() > 0:
-                CasbinRule.objects.filter(**condition).delete()
+                CurrentCasbinRule.objects.filter(**condition).delete()
                 return True
             else:
                 return False
@@ -113,9 +129,9 @@ class Adapter(persist.Adapter):
         condition = {'ptype': sec}
         conditions = dict(zip(['v%s' % str(i) for i in range(0, len(field_values))], field_values))
         condition.update(conditions)
-        check = CasbinRule.objects(**condition)
+        check = CurrentCasbinRule.objects(**condition)
         if check.count() > 0:
-            CasbinRule.objects(**condition).delete()
+            CurrentCasbinRule.objects(**condition).delete()
             return True
         else:
             return False

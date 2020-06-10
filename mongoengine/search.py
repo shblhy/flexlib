@@ -1,6 +1,7 @@
 import jieba
+import logging
 from mongoengine import StringField, ListField, EmbeddedDocumentField
-from app.logging_service import logger
+logger = logging.getLogger(__name__)
 
 
 class SearchMixin:
