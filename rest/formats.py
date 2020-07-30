@@ -64,7 +64,7 @@ class BaseTable(object):
     #     return marshal(self, self.fields())
 
     @classmethod
-    def get_fields(cls, serializer_cls, name=None, add_action=True, format={}):
+    def get_fields(cls, serializer_cls, name=None, add_action=True, skip_none=True, format={}):
         if name is None:
             name = 'Table%s' % (serializer_cls,)
         model_fields = copy.deepcopy(serializer_cls(_many_=True).fields)
@@ -73,7 +73,7 @@ class BaseTable(object):
         model = Model('ListItem%s' % (serializer_cls.__name__,), model_fields)
         res = copy.copy(cls.TABLE_FORMAT)
         res.update(format)
-        res['data'] = frp_fields.List(frp_fields.Nested(model, skip_none=True), attribute='_items')
+        res['data'] = frp_fields.List(frp_fields.Nested(model, skip_none=skip_none), attribute='_items')
         return Model(name, res)
 
 

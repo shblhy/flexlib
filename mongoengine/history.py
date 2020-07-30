@@ -1,8 +1,11 @@
 import time
 import datetime
+import json
 from bson import ObjectId
 from mongoengine import StringField, DynamicField
 from mongoengine.base.common import get_document
+from utils.json_encoder import JsonExtendEncoder
+from .compare_diff import get_diff, get_attr
 
 """
     历史记录的解决方案：
@@ -34,16 +37,9 @@ class HistoryMixin:
         pk = self.pk
         history_cls = self.get_history_document()
         content = type(self).objects.get(pk=pk)
-        before_update_version = history_cls(
-            content=content.db_dict,
-            desc=desc
-        )
         if self.db_dict == content.db_dict:
             return self
         res = self.save(**kwargs)
-        db_last_version = history_cls.objects(__raw__={"content._id": self.id}).order_by('-create_time').first()
-        if not db_last_version or db_last_version.content != before_update_version.content:
-            before_update_version.save()
         snapshot = history_cls(
             content=self.db_dict,
             desc=desc
@@ -98,6 +94,9 @@ class HistoryMixin:
         if db_last_version and db_last_version.content == cls.objects.get(pk=self.pk).db_dict:
             return db_last_version.version
 
+    def diff(self, record):
+        return get_diff(record.content, self.to_mongo().to_dict())
+
 
 class History:
     _model_desc_ = 'auto history'
@@ -131,3 +130,13 @@ class History:
         if type(content_id) is str:
             content_id = ObjectId(content_id)
         return cls.objects(__raw__={"content._id": content_id, "version": version}).order_by('-create_time').first()
+
+    @property
+    def content_json(self):
+        if self.content:
+            content_str = json.dumps(self.content, cls=JsonExtendEncoder)
+            return json.loads(content_str)
+
+    def diff(self, record):
+        return get_diff(record.content, self.content)
+

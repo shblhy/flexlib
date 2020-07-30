@@ -6,7 +6,7 @@ from utils import pagination, get_object_or_404
 from exlib.restviewset.response import JsonResponse, SuccessResponse, FailedResponse, TableResponse, ProjectError, \
     PermError
 from exlib.restviewset.reqparse import RequestParser
-from werkzeug.exceptions import abort
+from werkzeug.exceptions import abort, BadRequest
 from utils.decorators import request_logging
 
 DEFAULT_ENGINE = 'mongo'
@@ -106,13 +106,16 @@ def model_order_paginate(model_class, objs, pargs, engine=DEFAULT_ENGINE):
     elif engine == 'mongo':
         if hasattr(pargs, 'order_fields') and pargs.order_fields is not None:
             objs = objs.order_by(pargs.order_fields)
-        if pargs.page_size == -1:
+        if pargs.page_size < -1:
+            raise BadRequest('page_size(页长）不能小于-1')
+        elif pargs.page_size == -1:
             return list(objs)
         return list(objs.skip((pargs.page - 1) * pargs.page_size).limit(pargs.page_size))
 
 
 class ActionResource(OriResource):
     model_class = None
+    method_decorators = Resource.method_decorators
 
 
 class ActionResourceLogin(OriResource):

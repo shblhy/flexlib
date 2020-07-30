@@ -89,6 +89,8 @@ class TableResponse(JsonResponse):
     DEFAULT_PAGE_SIZE = 20
 
     def __init__(self, data=[], page=1, total=0, page_size=20, message=''):
+        if page_size < -1:
+            raise BadRequest('page_size(页长)不能小于-1')
         res = {'code': 0, 'data': data, 'message': message, 'current_page': page,
                'total': total, 'total_page': int((total - 1) / page_size) + 1 if page_size != '-1' else 1}
         super(JsonResponse, self).__init__(response=json_dumps(res))
