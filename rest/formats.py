@@ -118,20 +118,21 @@ class BaseResponse(object):
             name = 'Response%s' % (serializer_cls,)
         res = copy.copy(cls.FORMAT)
         res.update(format)
-        res['data'] = frp_fields.Nested(serializer_cls(**kwargs).fields_model(), attribute='_item')
+        res['data'] = frp_fields.Nested(serializer_cls(**kwargs).fields_model(), attribute='_item',
+                                        skip_none=kwargs.get('skip_none', False))
         return Model(name, res)
 
 
 class ListResponseMixin:
     @classmethod
-    def get_fields(cls, serializer_cls, name=None, format={}):
+    def get_fields(cls, serializer_cls, name=None, format={}, **kwargs):
         if name is None:
             name = 'Response%s' % (serializer_cls,)
         res = copy.copy(cls.FORMAT)
         model_fields = copy.deepcopy(serializer_cls().fields)
         model = Model('ListItem%s' % (serializer_cls.__name__,), model_fields)
         res.update(format)
-        res['data'] = frp_fields.List(frp_fields.Nested(model), attribute='_item')
+        res['data'] = frp_fields.List(frp_fields.Nested(model, skip_none=kwargs.get('skip_none', False)), attribute='_item')
         return Model(name, res)
 
 
@@ -183,3 +184,4 @@ BASE_ERROR_FIELD = LocalProxy(lambda: _get_base_error_field())
 SKV_ERROR_FIELD = LocalProxy(lambda: _get_skv_error_field())
 Model = LocalProxy(lambda: _get_model())
 error_fields = LocalProxy(lambda: _get_skv_error_field())
+
