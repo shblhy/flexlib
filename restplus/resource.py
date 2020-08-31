@@ -56,6 +56,27 @@ class SingleResource(OriResource):
         obj = get_object_or_404(self.model_class, self.model_class.id == obj_id)
         return JsonResponse(self.model_serializer(obj).data)
 
+    def get_operation_msg(self, obj):
+        ACTIONS = {
+            "GET": "查看%s",
+            "PUT": "修改%s",
+            "DELETE": "删除%s",
+        }
+        return ACTIONS[request.method] % str(obj)
+
+    def save_operation(self, obj: object = None, message: str = None, obj_id: str = None, obj_type=None) -> str:
+        from app.basic.operation_log.models import OperationLog
+        if not any([obj is None, message is None]):
+            assert Exception('obj和message必须有一项有值')
+        msg = self.get_operation_msg(obj) if message is None else message
+        o = OperationLog(
+            message=msg,
+            obj_id=str(obj.pk) if obj else obj_id,
+            obj_type=getattr(type(obj) if obj else obj_type, '__name__', None),
+            status='成功'
+        ).save()
+        return o.message
+
 
 class ListResource(OriResource):
     model_class = None
@@ -76,6 +97,26 @@ class ListResource(OriResource):
     def order_paginate(self, objs, pargs, engine=DEFAULT_ENGINE):
         return model_order_paginate(self.model_class, objs, pargs, engine)
 
+    def get_operation_msg(self, objs):
+        def _get_desc(objs):
+            return objs[0]._model_desc_ + '列表'
+        ACTIONS = {
+            "GET": "查看%s列表",
+            "POST": "新增%s"
+        }
+        return ACTIONS[request.method] % _get_desc(objs)
+
+    def save_operation(self, objs: object = None, message: str = None, obj_type=None) -> str:
+        from app.basic.operation_log.models import OperationLog
+        if not any([objs is None, message is None]):
+            assert Exception('obj和message必须有一项有值')
+        msg = self.get_operation_msg(objs) if message is None else message
+        o = OperationLog(
+            message=msg,
+            obj_type=getattr(type(objs[0]) if objs else obj_type, '__name__', None),
+            status='成功'
+        ).save()
+        return o.message
 
 def model_order_paginate(model_class, objs, pargs, engine=DEFAULT_ENGINE):
     """
