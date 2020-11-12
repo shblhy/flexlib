@@ -59,8 +59,12 @@ CurrentCasbinRule = LocalProxy(lambda: _get_current_casbin_rule_cls())
 class Adapter(persist.Adapter):
     """the interface for Casbin adapters."""
 
-    def __init__(self, dbname, host):
-        connect(db=dbname, host=host)
+    def __init__(self):
+        """
+            请自行连接mongo数据库，以免重复连接， 如：
+            connect(dbname, host=host)
+        """
+        pass
 
     def load_policy(self, model):
         '''

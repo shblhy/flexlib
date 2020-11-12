@@ -178,10 +178,12 @@ Table = LocalProxy(lambda: get_table_cls())
 def get_list_response():
     return CURRENT_REST_PLUS_CONFIG.list_response_cls
 
+def get_list_response():
+    return CURRENT_REST_PLUS_CONFIG.list_response_cls
+
 
 ListResponse = LocalProxy(lambda: get_list_response())
 BASE_ERROR_FIELD = LocalProxy(lambda: _get_base_error_field())
 SKV_ERROR_FIELD = LocalProxy(lambda: _get_skv_error_field())
 Model = LocalProxy(lambda: _get_model())
 error_fields = LocalProxy(lambda: _get_skv_error_field())
-
