@@ -2,7 +2,7 @@ from datetime import datetime, date
 
 from flask_restplus import fields
 
-from exlib.base.exceptions import ActionError
+from ..webbase.response import ActionError
 
 
 class CusTime(fields.MinMaxMixin, fields.Raw):

@@ -5,10 +5,10 @@ import six
 from flask_restplus import fields as frp_fields
 from flask_restplus.fields import Raw
 from flask_restplus.inputs import datetime_from_iso8601, datetime_from_rfc822
-from exlib.interface import CURRENT_REST_PLUS_CONFIG
 from utils.decorators import cached_property
 from flask_restplus.marshalling import marshal
-from exlib.rest.formats import Model
+from ..config import CURRENT_REST_PLUS_CONFIG
+from .formats import Model
 import logging
 logger = logging.getLogger(__name__)
 TIME_ZONE_FOR_SERIALIZER = CURRENT_REST_PLUS_CONFIG.TIME_ZONE_FOR_SERIALIZER
@@ -91,21 +91,21 @@ class Serializer(object):
         return Model(name, self.fields)
 
     def table(self, **kwargs):
-        from exlib.rest.formats import Table
+        from exlib.flask_restplus.formats import Table
         return Table(
             _serializer_=self,
             **kwargs
         )
 
     def item(self, **kwargs):
-        from exlib.rest.formats import SucResponse
+        from exlib.flask_restplus.formats import SucResponse
         return SucResponse(
             _serializer_=self,
             **kwargs
         )
 
     def items(self, **kwargs):
-        from exlib.rest.formats import ListResponse
+        from exlib.flask_restplus.formats import ListResponse
         return ListResponse(
             _serializer_=self,
             **kwargs

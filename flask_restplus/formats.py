@@ -1,7 +1,7 @@
 import copy
 from flask_restplus import fields as frp_fields
 from werkzeug.local import LocalProxy
-from exlib.interface import CURRENT_REST_PLUS_CONFIG
+from ..config import CURRENT_REST_PLUS_CONFIG
 
 
 class BaseTable(object):

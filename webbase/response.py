@@ -1,26 +1,16 @@
 import json
 from flask.wrappers import Response
-from utils.json_encoder import JsonExtendEncoder
+from flask.json import JSONEncoder
 from werkzeug.exceptions import BadRequest, HTTPException
 
 
 def json_dumps(data):
-    return json.dumps(data, cls=JsonExtendEncoder)
+    return json.dumps(data, cls=JSONEncoder)
 
 
 class JsonResponse(Response):
-    default_mimetype = 'application/json'
-
     def __init__(self, data={}, status=200):
         super(JsonResponse, self).__init__(response=json_dumps(data), content_type='application/json', status=status)
-
-
-# class SuccessResponse(JsonResponse):
-#     def __init__(self, message, data={}):
-#         res = {'code': 0, 'message': message}
-#         if data is not None:
-#             res['data'] = data
-#         super(SuccessResponse, self).__init__(res)
 
 
 class SuccessResponse(JsonResponse):
@@ -55,36 +45,6 @@ class FailedResponse(JsonResponse):
         super(FailedResponse, self).__init__(res)
 
 
-# class ProjectError(BadRequest):
-class ProjectError(HTTPException):
-    def __init__(self, right_pro_id=None, err_pro_id=None, message='项目错误'):
-        messages = [message]
-        if right_pro_id:
-            messages.append('当前项目是%s号' % right_pro_id)
-        if err_pro_id:
-            messages.append('却尝试在%s号项目上操作' % err_pro_id)
-        res = {'code': 4031, 'message': ','.join(messages)}
-        # super(BadRequest, self).__init__(res)
-        super(ProjectError, self).__init__(
-            response=Response(response=json_dumps(res), status=403, content_type='application/json'))
-
-
-class ActionError(HTTPException):
-    def __init__(self, message=''):
-        super(ActionError, self).__init__(response=FailedResponse(message, status=400))
-
-    def __str__(self):
-        return
-
-
-class PermError(HTTPException):
-    def __init__(self, message=''):
-        super(PermError, self).__init__(response=FailedResponse(message, status=403))
-
-    def __str__(self):
-        return
-
-
 class TableResponse(JsonResponse):
     DEFAULT_PAGE_SIZE = 20
 
@@ -94,3 +54,21 @@ class TableResponse(JsonResponse):
         res = {'code': 0, 'data': data, 'message': message, 'current_page': page,
                'total': total, 'total_page': int((total - 1) / page_size) + 1 if page_size != '-1' else 1}
         super(JsonResponse, self).__init__(response=json_dumps(res))
+
+
+class ActionError(HTTPException):
+    def __init__(self, message=''):
+        super(ActionError, self).__init__(response=FailedResponse(message, status=400))
+
+    def __str__(self):
+        code = self.code if self.code is not None else "???"
+        return "%s %s: %s" % (code, self.name, self.description)
+
+
+class PermError(HTTPException):
+    def __init__(self, message=''):
+        super(PermError, self).__init__(response=FailedResponse(message, status=403))
+
+    def __str__(self):
+        code = self.code if self.code is not None else "???"
+        return "%s %s: %s" % (code, self.name, self.description)

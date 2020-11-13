@@ -4,9 +4,8 @@ import datetime
 from functools import wraps
 from flask import request
 from flask_login import current_user
-from werkzeug.exceptions import Unauthorized
-from exlib.base.signature import Signature
-from exlib.base.http_utils import get_real_ip
+
+from .http_utils import get_real_ip
 
 
 class cached_property(object):
@@ -55,6 +54,9 @@ class ClassPropertyDescriptor(object):
 
 
 def classproperty(func):
+    """
+        类似于 classmethod 不过是属性不是方法
+    """
     if not isinstance(func, (classmethod, staticmethod)):
         func = classmethod(func)
     return ClassPropertyDescriptor(func)
@@ -89,68 +91,6 @@ def func_timer(function):
     return function_timer
 
 
-def marshal_item(serializer_class, code=200, description=None, **kwargs):
-    from flask_restplus.marshalling import marshal, marshal_with
-    from exlib.rest.formats import SucResponse, error_fields
-    from flask_restplus.utils import merge
-    fields = SucResponse.get_fields(serializer_class, _many_=False)
-
-    def wrapper(func):
-        doc = {
-            'responses': {
-                code: (description, fields),
-                400: ('http request error', error_fields)
-            },
-            '__mask__': kwargs.get('mask', True),  # Mask values can't be determined outside app context
-        }
-        func.__apidoc__ = merge(getattr(func, '__apidoc__', {}), doc)
-        return marshal_with(fields, ordered=True, **kwargs)(func)
-
-    return wrapper
-
-
-def marshal_table(serializer_class, as_list=False, code=200, description=None, **kwargs):
-    '''
-    A decorator specifying the fields to use for serialization.
-
-    :param bool as_list: Indicate that the return type is a list (for the documentation)
-    :param int code: Optionally give the expected HTTP response code if its different from 200
-
-    '''
-    from flask_restplus.marshalling import marshal, marshal_with
-    from flask_restplus.utils import merge
-    from exlib.rest.formats import Table, error_fields
-    fields = Table.get_fields(serializer_class, add_action=bool(kwargs.get('add_action')))
-
-    def wrapper(func):
-        doc = {
-            'responses': {
-                code: (description, fields),
-                400: ('http request error', error_fields)
-            },
-            '__mask__': kwargs.get('mask', True),  # Mask values can't be determined outside app context
-        }
-        func.__apidoc__ = merge(getattr(func, '__apidoc__', {}), doc)
-        return marshal_with(fields, ordered=True, **kwargs)(func)
-
-    return wrapper
-
-
-def program_authentication_required(func):
-    @wraps(func)
-    def decorated_view(*args, **kwargs):
-        identify = request.environ.get('HTTP_IDENTIFY', '')
-        try:
-            dic = dict([i.split('=') for i in identify.split('&')])
-            if not Signature.check_right(**dic):
-                raise Unauthorized(description='signature failed:' + str(dic))
-        except Exception as e:
-            raise Unauthorized(description='signature failed:' + str(e))
-        return func(*args, **kwargs)
-
-    return decorated_view
-
-
 def request_logging(func):
     @wraps(func)
     def decorated_view(*args, **kwargs):
@@ -158,7 +98,12 @@ def request_logging(func):
         if request.method == "GET":
             payload = request.args
         else:
-            payload = request.get_json()
+            try:
+                payload = request.get_json()
+                if request.args:
+                    payload.update(request.args)
+            except:
+                payload = request.args
         ip = get_real_ip()
         logging_dict = dict(
             request=request.method, path=request.path, ip=ip,
