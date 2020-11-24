@@ -11,7 +11,7 @@ from ..config import CURRENT_REST_PLUS_CONFIG
 from .formats import Model
 import logging
 logger = logging.getLogger(__name__)
-TIME_ZONE_FOR_SERIALIZER = CURRENT_REST_PLUS_CONFIG.timezone
+TIME_ZONE_FOR_SERIALIZER = CURRENT_REST_PLUS_CONFIG.config.timezone
 ALL_FIELDS = '__all__'
 
 """

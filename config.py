@@ -51,4 +51,8 @@ class ExlibInterface:
         self.current_app = app
 
 
-CURRENT_REST_PLUS_CONFIG = ExlibInterface()
+def _get_current_rest_plus_config_cls():
+    return ExlibInterface()
+
+
+CURRENT_REST_PLUS_CONFIG = LocalProxy(lambda: _get_current_rest_plus_config_cls())

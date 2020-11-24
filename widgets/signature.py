@@ -3,7 +3,6 @@ import hashlib
 from functools import wraps
 from flask import request
 from werkzeug.exceptions import Unauthorized
-from .signature import Signature
 
 
 class Signature(object):
