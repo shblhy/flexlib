@@ -4,7 +4,7 @@ import json
 from bson import ObjectId
 from mongoengine import StringField, DynamicField
 from mongoengine.base.common import get_document
-from utils.json_encoder import JsonExtendEncoder
+from ..webbase.json import JSONEncoder
 from .compare_diff import get_diff, get_attr
 
 """
@@ -136,7 +136,7 @@ class History:
     @property
     def content_json(self):
         if self.content:
-            content_str = json.dumps(self.content, cls=JsonExtendEncoder)
+            content_str = json.dumps(self.content, cls=JSONEncoder)
             return json.loads(content_str)
 
     def diff(self, record):

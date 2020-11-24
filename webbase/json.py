@@ -4,7 +4,7 @@ from datetime import date, datetime
 from bson import ObjectId
 
 
-class JsonExtendEncoder(json.JSONEncoder):
+class JSONEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, (datetime, date)):
             return o.isoformat()

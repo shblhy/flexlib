@@ -5,13 +5,13 @@ import six
 from flask_restplus import fields as frp_fields
 from flask_restplus.fields import Raw
 from flask_restplus.inputs import datetime_from_iso8601, datetime_from_rfc822
-from utils.decorators import cached_property
+from exlib.widgets.decorators import cached_property
 from flask_restplus.marshalling import marshal
 from ..config import CURRENT_REST_PLUS_CONFIG
 from .formats import Model
 import logging
 logger = logging.getLogger(__name__)
-TIME_ZONE_FOR_SERIALIZER = CURRENT_REST_PLUS_CONFIG.TIME_ZONE_FOR_SERIALIZER
+TIME_ZONE_FOR_SERIALIZER = CURRENT_REST_PLUS_CONFIG.timezone
 ALL_FIELDS = '__all__'
 
 """
@@ -118,6 +118,9 @@ import datetime
 
 
 class DateBeijin(DateTime):
+    """
+        todo@hy 毫无优雅感的实现 待修改
+    """
     def parse(self, value):
         new_value = super().parse(value)
         if new_value is None:

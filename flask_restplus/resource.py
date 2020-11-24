@@ -1,11 +1,11 @@
 from flask_restplus import Resource as OriResource
-from utils.decorators import cached_property
+from exlib.widgets.decorators import cached_property
 from flask import request
 from flask_login import login_required
 from utils import get_object_or_404
 from exlib.webbase.response import JsonResponse
 from werkzeug.exceptions import abort, BadRequest
-from utils.decorators import request_logging
+from ..widgets.decorators import request_logging
 
 DEFAULT_ENGINE = 'mongo'
 

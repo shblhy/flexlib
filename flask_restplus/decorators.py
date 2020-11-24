@@ -1,6 +1,6 @@
 from flask_restplus.marshalling import marshal_with
-from exlib.flask_restplus.formats import SucResponse, Table, error_fields
 from flask_restplus.utils import merge
+from .formats import SucResponse, Table, error_fields
 
 
 def marshal_item(serializer_class, code=200, description=None, **kwargs):

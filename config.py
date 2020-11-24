@@ -9,7 +9,8 @@ class Config:
 
 DEFAULT_CONFIG = Config(
     base_ignore_fields=['update_time'],
-    db_engine='mongoengine'
+    db_engine='mongoengine',
+    timezone='BEIJING'# todo@hy 时区用这个标记表达并不合理
 )
 
 
@@ -50,14 +51,4 @@ class ExlibInterface:
         self.current_app = app
 
 
-def _get_current_rest_plus_config_cls():
-    try:
-        from utils.exlib_interface import REST_PLUS_CONFIG
-    except Exception as e:
-        import traceback
-        print(traceback.format_exc())
-        REST_PLUS_CONFIG = ExlibInterface()
-    return REST_PLUS_CONFIG
-
-
-CURRENT_REST_PLUS_CONFIG = LocalProxy(lambda: _get_current_rest_plus_config_cls())
+CURRENT_REST_PLUS_CONFIG = ExlibInterface()

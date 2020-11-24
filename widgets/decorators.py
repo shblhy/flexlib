@@ -92,31 +92,37 @@ def func_timer(function):
 
 
 def request_logging(func):
+    """
+        设置access_log，则会向这里输出日志
+    :param func:
+    :return:
+    """
     @wraps(func)
     def decorated_view(*args, **kwargs):
         from flask import current_app
-        if request.method == "GET":
-            payload = request.args
-        else:
-            try:
-                payload = request.get_json()
-                if request.args:
-                    payload.update(request.args)
-            except:
+        if current_app.access_log:
+            if request.method == "GET":
                 payload = request.args
-        ip = get_real_ip()
-        logging_dict = dict(
-            request=request.method, path=request.path, ip=ip,
-            time=datetime.datetime.now(),
-            agent_platform=request.user_agent.platform,
-            agent_browser=request.user_agent.browser,
-            agent_browser_version=request.user_agent.version,
-            agent=request.user_agent.string,
-            user_db_id=str(current_user.id) if (current_user and not current_user.is_anonymous) else "",
-            user_name=current_user.name.encode("utf-8") if (current_user and not current_user.is_anonymous) else "",
-            payload=json.dumps(payload, ensure_ascii=False)
-        )
-        current_app.access_log.info(logging_dict)
+            else:
+                try:
+                    payload = request.get_json()
+                    if request.args:
+                        payload.update(request.args)
+                except:
+                    payload = request.args
+            ip = get_real_ip()
+            logging_dict = dict(
+                request=request.method, path=request.path, ip=ip,
+                time=datetime.datetime.now(),
+                agent_platform=request.user_agent.platform,
+                agent_browser=request.user_agent.browser,
+                agent_browser_version=request.user_agent.version,
+                agent=request.user_agent.string,
+                user_db_id=str(current_user.id) if (current_user and not current_user.is_anonymous) else "",
+                user_name=current_user.name.encode("utf-8") if (current_user and not current_user.is_anonymous) else "",
+                payload=json.dumps(payload, ensure_ascii=False)
+            )
+            current_app.access_log.info(logging_dict)
         return func(*args, **kwargs)
 
     return decorated_view
