@@ -1,6 +1,6 @@
 import json
 from flask.wrappers import Response
-from flask.json import JSONEncoder
+from .json import JSONEncoder
 from werkzeug.exceptions import BadRequest, HTTPException
 
 
