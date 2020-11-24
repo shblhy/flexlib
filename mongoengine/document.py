@@ -3,8 +3,6 @@ from mongoengine import fields, EmbeddedDocumentField, ReferenceField
 from ..widgets.decorators import classproperty
 from ..config import CURRENT_REST_PLUS_CONFIG
 
-BASE_IGNORE_FIELDS = CURRENT_REST_PLUS_CONFIG.config.base_ignore_fields
-
 
 class DocumentMixin:
     _restruct_ = False
@@ -25,19 +23,21 @@ class DocumentMixin:
         return res
 
     @classmethod
-    def create_with(cls, data_dict, ignore_fields=BASE_IGNORE_FIELDS):
+    def create_with(cls, data_dict, ignore_fields=None):
+        ignore_fields = ignore_fields or CURRENT_REST_PLUS_CONFIG.config.base_ignore_fields
         s = cls()
         data_dict = {i: data_dict[i] for i in data_dict if i not in ignore_fields}
         cls.update_document(s, data_dict)
         return s
 
-    def update_with(self, data_dict, ignore_fields=BASE_IGNORE_FIELDS):
+    def update_with(self, data_dict, ignore_fields=None):
         """
             利用字典内容更新对象。屏蔽掉若干字段。
         :param data_dict:
         :param ignore_fields:
         :return:
         """
+        ignore_fields = ignore_fields or CURRENT_REST_PLUS_CONFIG.config.base_ignore_fields
         data_dict = {i: data_dict[i] for i in data_dict if i not in ignore_fields}
         DocumentMixin.update_document(self, data_dict)
 
