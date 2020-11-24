@@ -5,7 +5,6 @@ from mongoengine import Document
 from mongoengine import connect
 from mongoengine.fields import IntField, StringField
 from werkzeug.local import LocalProxy
-from ..config import CURRENT_REST_PLUS_CONFIG
 
 
 class CasbinRule(Document):
@@ -50,6 +49,7 @@ class CasbinRule(Document):
 
 
 def _get_current_casbin_rule_cls():
+    from ..config import CURRENT_REST_PLUS_CONFIG
     return CURRENT_REST_PLUS_CONFIG.casbin_rule_cls
 
 
