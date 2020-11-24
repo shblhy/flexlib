@@ -11,7 +11,6 @@ from ..config import CURRENT_REST_PLUS_CONFIG
 from .formats import Model
 import logging
 logger = logging.getLogger(__name__)
-TIME_ZONE_FOR_SERIALIZER = CURRENT_REST_PLUS_CONFIG.config.timezone
 ALL_FIELDS = '__all__'
 
 """
@@ -186,7 +185,7 @@ def get_base_fields_by_mge_field(mongo_field):
             res = res(f)
         return res
 
-    if TIME_ZONE_FOR_SERIALIZER == "BEIJING":
+    if CURRENT_REST_PLUS_CONFIG.config.timezone == "BEIJING":
         datetimefield = DateBeijin
     else:
         datetimefield = frp_fields.DateTime

@@ -20,16 +20,16 @@ class ExlibInterface:
         保存exlib可能使用到的参数 config
     """
 
-    def __init__(self):
-        from .flask_restplus.formats import BaseTable, BaseResponse, BaseListResponse
-        from .libs.casbin_mongoengine_adapter import CasbinRule
-        from app import api_plus
-        self.table_cls = BaseTable
-        self.current_api = api_plus
-        self.response_cls = BaseResponse
-        self.casbin_rule_cls = CasbinRule
-        self.list_response_cls = BaseListResponse
-        self.config = DEFAULT_CONFIG
+    # def __init__(self):
+    #     from .flask_restplus.formats import BaseTable, BaseResponse, BaseListResponse
+    #     from .libs.casbin_mongoengine_adapter import CasbinRule
+    #     from app import api_plus
+    #     self.table_cls = BaseTable
+    #     self.current_api = api_plus
+    #     self.response_cls = BaseResponse
+    #     self.casbin_rule_cls = CasbinRule
+    #     self.list_response_cls = BaseListResponse
+    #     self.config = DEFAULT_CONFIG
 
     def init_app(self, app, config=None, api=None, table=None, list_cls=None, response=None, casbin_model=None):
         """
@@ -50,9 +50,26 @@ class ExlibInterface:
         app.rest_plus_config = self
         self.current_app = app
 
+    @staticmethod
+    def init(app, config=None, api=None, table=None, list_cls=None, response=None, casbin_model=None):
+        """
+            可传入自己使用的子类，从而改写默认行为  # todo@hy 重复写了次 和原意不符 是为了解决循环引用问题
+        :param app:
+        :param api:
+        :param table:
+        :param response:
+        :param casbin_model:
+        :return:
+        """
+        self = CURRENT_REST_PLUS_CONFIG
+        self.config = config or self.config
+        self.current_api = api or self.current_api
+        self.table_cls = table or self.table_cls
+        self.response_cls = response or self.response_cls
+        self.casbin_rule_cls = casbin_model or self.casbin_rule_cls
+        self.list_response_cls = list_cls or self.list_cls
+        app.rest_plus_config = self
+        self.current_app = app
 
-def _get_current_rest_plus_config_cls():
-    return ExlibInterface()
 
-
-CURRENT_REST_PLUS_CONFIG = LocalProxy(lambda: _get_current_rest_plus_config_cls())
+CURRENT_REST_PLUS_CONFIG = ExlibInterface()
