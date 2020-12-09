@@ -1,6 +1,9 @@
 from bson import ObjectId
 from mongoengine import fields, EmbeddedDocumentField, ReferenceField, DateTimeField, DateField
-from dateparser import parser
+try:
+    from dateutil import parser
+except:
+    from dateparser import parser
 from ..widgets.decorators import classproperty
 from ..config import CURRENT_REST_PLUS_CONFIG
 
