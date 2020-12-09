@@ -1,5 +1,6 @@
 from bson import ObjectId
-from mongoengine import fields, EmbeddedDocumentField, ReferenceField
+from mongoengine import fields, EmbeddedDocumentField, ReferenceField, DateTimeField, DateField
+from dateparser import parser
 from ..widgets.decorators import classproperty
 from ..config import CURRENT_REST_PLUS_CONFIG
 
@@ -53,6 +54,8 @@ class DocumentMixin:
                     fields.ReferenceField,
             ) and type(value) in (ObjectId, str):
                 return field.document_type.objects.get(pk=value)
+            elif field.__class__ in (DateTimeField, DateField):
+                return parser.parse(value)
             elif field.__class__ in (
                     fields.EmbeddedDocumentField,
                     fields.ReferenceField,
