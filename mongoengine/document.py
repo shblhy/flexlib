@@ -1,5 +1,6 @@
 from bson import ObjectId
-from mongoengine import fields, EmbeddedDocumentField, ReferenceField, DateTimeField, DateField
+from copy import deepcopy
+from mongoengine import fields, EmbeddedDocumentField, ReferenceField, DateTimeField, DateField, ListField
 try:
     from dateutil import parser
 except:
@@ -24,6 +25,29 @@ class DocumentMixin:
         res = self.to_mongo(use_db_field=False).to_dict()
         if not need_id and '_id' in res and '_id' not in self._fields_ordered:
             del res['_id']
+        return res
+
+    @classmethod
+    def parse_db_key(cls, data):
+        res = {}
+        
+        def _parse_data(dest, dic, cur_cls):
+            reverse_dic = cur_cls._reverse_db_field_map
+            for db_key, v in dic.items():
+                if db_key in reverse_dic:
+                    cls_key = reverse_dic[db_key]
+                    dest[cls_key] = v
+                    field = getattr(cur_cls, cls_key)
+                    if isinstance(field, ListField):
+                        next_cls = field.field.document_type
+                        for ind,ite in enumerate(v):
+                            dest[cls_key][ind] = {}
+                            _parse_data(dest[cls_key][ind], deepcopy(ite), next_cls)
+                    elif isinstance(field, EmbeddedDocumentField):
+                        next_cls = field.document_type
+                        dest[cls_key] = {}
+                        _parse_data(dest[cls_key], deepcopy(dic[db_key]), next_cls)
+        _parse_data(res, data, cls)
         return res
 
     @classmethod
