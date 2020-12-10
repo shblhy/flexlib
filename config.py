@@ -11,6 +11,7 @@ DEFAULT_CONFIG = Config(
     base_ignore_fields=['update_time'],
     db_engine='mongoengine',
     timezone='BEIJING'# todo@hy 时区用这个标记表达并不合理
+    # signature_group
 )
 
 

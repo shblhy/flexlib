@@ -13,17 +13,11 @@ class Signature(object):
         signature = Signature.gen_signature(action, secret_id, t)
         Signature.check_right(action, secret_id, t, signature)
     """
-    USERS = [('wechat_personal', b'641a841e-0f7a-11ea-bcb4-88e9fe798ebc'),
-             ('spider_angel', b'641a841e-0f7a-11ea-cda5-88e9fea634fg'),
-             ('account_sync', b'1f8a1a7a-94d7-11ea-97e6-f0189806dd47'),
-             ('study_account_sync', b'25410564-94d7-11ea-86a5-f0189806dd47'),
-             ('study_library_alert', b'25410564-94d7-11ea-86a5-f0189806dd47'),
-             ('get_valuator', b'0029bddc-afaa-11ea-868f-f0189806dd47'),
-             ]
 
     @staticmethod
     def get_key(key):
-        return dict(Signature.USERS)[key]
+        from ..config import CURRENT_REST_PLUS_CONFIG
+        return dict(CURRENT_REST_PLUS_CONFIG.config.signature_group)[key]
 
     @staticmethod
     def gen_signature(action, secret_id, timestamp):
