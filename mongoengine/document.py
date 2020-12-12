@@ -58,7 +58,10 @@ class DocumentMixin:
             ) and type(value) in (ObjectId, str):
                 return field.document_type.objects.get(pk=value)
             elif field.__class__ in (DateTimeField, DateField):
-                return parser.parse(value)
+                if type(value) is str:
+                    return parser.parse(value)
+                else:
+                    return value
             elif field.__class__ in (
                     fields.EmbeddedDocumentField,
                     fields.ReferenceField,
