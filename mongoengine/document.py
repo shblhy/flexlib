@@ -39,10 +39,14 @@ class DocumentMixin:
                     dest[cls_key] = v
                     field = getattr(cur_cls, cls_key)
                     if isinstance(field, ListField):
-                        next_cls = field.field.document_type
-                        for ind,ite in enumerate(v):
-                            dest[cls_key][ind] = {}
-                            _parse_data(dest[cls_key][ind], deepcopy(ite), next_cls)
+                        if isinstance(field.field, EmbeddedDocumentField):
+                            next_cls = field.field.document_type
+                            for ind,ite in enumerate(v):
+                                dest[cls_key][ind] = {}
+                                _parse_data(dest[cls_key][ind], deepcopy(ite), next_cls)
+                        else:
+                            for ind, ite in enumerate(v):
+                                dest[cls_key][ind] = field.field(**ite)
                     elif isinstance(field, EmbeddedDocumentField):
                         next_cls = field.document_type
                         dest[cls_key] = {}
