@@ -21,7 +21,8 @@ def marshal_item(serializer_class, code=200, description=None, **kwargs):
 
 
 def marshal_table(serializer_class, as_list=False, code=200, description=None, **kwargs):
-    fields = Table.get_fields(serializer_class, add_action=bool(kwargs.get('add_action')),
+    fields = Table.get_fields(serializer_class,
+                              add_action=bool(kwargs.pop('add_action', False)),
                               skip_none=bool(kwargs.get('skip_none', True)))
 
     def wrapper(func):
