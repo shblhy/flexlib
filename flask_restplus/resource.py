@@ -1,16 +1,16 @@
-from flask_restplus import Resource as OriResource
-from exlib.widgets.decorators import cached_property
+from flask_restplus import Resource as Resource_
 from flask import request
 from flask_login import login_required
 from utils import get_object_or_404
 from exlib.webbase.response import JsonResponse
 from werkzeug.exceptions import abort, BadRequest
 from ..widgets.decorators import request_logging
+from ..config import CURRENT_REST_PLUS_CONFIG
 
-DEFAULT_ENGINE = 'mongo'
+DEFAULT_ENGINE = CURRENT_REST_PLUS_CONFIG.db_engine
 
 
-class Resource(OriResource):
+class Resource(Resource_):
     model_class = None
     method_decorators = [request_logging]
 
@@ -19,38 +19,19 @@ class Resource(OriResource):
         return DEFAULT_ENGINE
 
 
-class SingleResource(OriResource):
+class SingleResource(Resource_):
     model_class = None
     method_decorators = Resource.method_decorators + [login_required]
 
-    # def __init__(self, api=None, *args, **kwargs):
-    #     self.api = api
-    #     if hasattr(self.__class__, 'poster') and  self.model_class:
-    #         self.__class__.poster.set_model_class(self.model_class)
-    #     if hasattr(self.__class__, 'filter') and  self.model_class:
-    #         self.__class__.filter.set_model_class(self.model_class)
-
-    @cached_property
+    @property
     def msg_del_success(self):
-        # return '删除%s成功' % self.model_class._model_desc_
-        return 'delete %s success' % self.model_class._model_desc_
+        return '删除%s成功' % self.model_class._model_desc_
 
-    @cached_property
+    @property
     def msg_edit_success(self):
-        # return '编辑%s成功' % self.model_class._model_desc_
-        return 'edit %s success' % self.model_class._model_desc_
-
-    @cached_property
-    def description_edit_success(self):
-        # return '修改' % self.model_class._model_desc_
-        return 'edit %s description success' % self.model_class._model_desc_
+        return '编辑%s成功' % self.model_class._model_desc_
 
     def get(self, obj_id):
-        """
-            查询对象
-        :param obj_id:
-        :return:
-        """
         obj = get_object_or_404(self.model_class, self.model_class.id == obj_id)
         return JsonResponse(self.model_serializer(obj).data)
 
@@ -62,35 +43,14 @@ class SingleResource(OriResource):
         }
         return ACTIONS[request.method] % str(obj)
 
-    def save_operation(self, obj: object = None, message: str = None, obj_id: str = None, obj_type=None) -> str:
-        from app.basic.operation_log.models import OperationLog
-        if not any([obj is None, message is None]):
-            assert Exception('obj和message必须有一项有值')
-        msg = self.get_operation_msg(obj) if message is None else message
-        o = OperationLog(
-            message=msg,
-            obj_id=str(obj.pk) if obj else obj_id,
-            obj_type=getattr(type(obj) if obj else obj_type, '__name__', None),
-            status='成功'
-        ).save()
-        return o.message
 
-
-class ListResource(OriResource):
+class ListResource(Resource_):
     model_class = None
     method_decorators = Resource.method_decorators + [login_required]
 
-    # def __init__(self, api=None, *args, **kwargs):
-    #     self.api = api
-    #     if hasattr(self.__class__, 'poster') and  self.model_class:
-    #         self.__class__.poster.set_model_class(self.model_class)
-    #     if hasattr(self.__class__, 'filter') and  self.model_class:
-    #         self.__class__.filter.set_model_class(self.model_class)
-
-    @cached_property
+    @property
     def msg_add_success(self):
-        # return '新增%s成功' % self.model_class._model_desc_
-        return 'add %s success' % self.model_class._model_desc_
+        return '新增 %s 成功' % self.model_class._model_desc_
 
     def order_paginate(self, objs, pargs, engine=DEFAULT_ENGINE):
         return model_order_paginate(self.model_class, objs, pargs, engine)
@@ -104,17 +64,6 @@ class ListResource(OriResource):
         }
         return ACTIONS[request.method] % _get_desc(objs)
 
-    def save_operation(self, objs: object = None, message: str = None, obj_type=None) -> str:
-        from app.basic.operation_log.models import OperationLog
-        if not any([objs is None, message is None]):
-            assert Exception('obj和message必须有一项有值')
-        msg = self.get_operation_msg(objs) if message is None else message
-        o = OperationLog(
-            message=msg,
-            obj_type=getattr(type(objs[0]) if objs else obj_type, '__name__', None),
-            status='成功'
-        ).save()
-        return o.message
 
 def model_order_paginate(model_class, objs, pargs, engine=DEFAULT_ENGINE):
     """
@@ -132,7 +81,6 @@ def model_order_paginate(model_class, objs, pargs, engine=DEFAULT_ENGINE):
             if key_name in model_class._meta.fields:
                 can_order_fields.append((key_name, desc))
             else:
-                # abort(400, "{} 排序字段错误".format(key_name))
                 abort(400, "{} order fields error".format(key_name))
         fields = (
             getattr(model_class, key_name).desc()
@@ -152,16 +100,11 @@ def model_order_paginate(model_class, objs, pargs, engine=DEFAULT_ENGINE):
         return list(objs.skip((pargs.page - 1) * pargs.page_size).limit(pargs.page_size))
 
 
-class ActionResource(OriResource):
+class ActionResource(Resource_):
     model_class = None
     method_decorators = Resource.method_decorators
 
 
-class ActionResourceLogin(OriResource):
-    model_class = None
-    method_decorators = Resource.method_decorators + [login_required]
-
-
-class LoginActionResource(OriResource):
+class LoginActionResource(Resource_):
     model_class = None
     method_decorators = Resource.method_decorators + [login_required]
