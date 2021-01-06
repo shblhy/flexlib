@@ -7,7 +7,7 @@ from werkzeug.exceptions import abort, BadRequest
 from ..widgets.decorators import request_logging
 from ..config import CURRENT_REST_PLUS_CONFIG
 
-DEFAULT_ENGINE = CURRENT_REST_PLUS_CONFIG.db_engine
+DEFAULT_ENGINE = CURRENT_REST_PLUS_CONFIG.config.db_engine
 
 
 class Resource(Resource_):
@@ -59,7 +59,7 @@ class ListResource(Resource_):
         def _get_desc(objs):
             return objs[0]._model_desc_ + '列表'
         ACTIONS = {
-            "GET": "查看%s列表",
+            "GET": "查看%s",
             "POST": "新增%s"
         }
         return ACTIONS[request.method] % _get_desc(objs)

@@ -1,7 +1,6 @@
 import copy
 from flask_restplus import fields as frp_fields
 from werkzeug.local import LocalProxy
-from ..config import CURRENT_REST_PLUS_CONFIG
 
 
 class BaseTable(object):
@@ -141,6 +140,7 @@ class BaseListResponse(BaseResponse, ListResponseMixin):
 
 
 def _get_base_error_field():
+    from ..config import CURRENT_REST_PLUS_CONFIG
     api = CURRENT_REST_PLUS_CONFIG.current_api
     return api.model('error_400', {
         'code': frp_fields.Integer,
@@ -149,6 +149,7 @@ def _get_base_error_field():
 
 
 def _get_skv_error_field():
+    from ..config import CURRENT_REST_PLUS_CONFIG
     api = CURRENT_REST_PLUS_CONFIG.current_api
     return api.model('error_400', {
         'status': frp_fields.Integer,
@@ -157,11 +158,13 @@ def _get_skv_error_field():
 
 
 def _get_model():
+    from ..config import CURRENT_REST_PLUS_CONFIG
     api = CURRENT_REST_PLUS_CONFIG.current_api
     return api.model
 
 
 def get_suc_response():
+    from ..config import CURRENT_REST_PLUS_CONFIG
     return CURRENT_REST_PLUS_CONFIG.response_cls
 
 
@@ -169,6 +172,7 @@ SucResponse = LocalProxy(lambda: get_suc_response())
 
 
 def get_table_cls():
+    from ..config import CURRENT_REST_PLUS_CONFIG
     return CURRENT_REST_PLUS_CONFIG.table_cls
 
 
@@ -176,9 +180,11 @@ Table = LocalProxy(lambda: get_table_cls())
 
 
 def get_list_response():
+    from ..config import CURRENT_REST_PLUS_CONFIG
     return CURRENT_REST_PLUS_CONFIG.list_response_cls
 
 def get_list_response():
+    from ..config import CURRENT_REST_PLUS_CONFIG
     return CURRENT_REST_PLUS_CONFIG.list_response_cls
 
 

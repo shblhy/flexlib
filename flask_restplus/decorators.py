@@ -4,7 +4,7 @@ from .formats import SucResponse, Table, error_fields
 
 
 def marshal_item(serializer_class, code=200, description=None, **kwargs):
-    fields = SucResponse.get_fields(serializer_class, _many_=False, skip_none=kwargs.get('skip_none'))
+    fields = SucResponse.get_fields(serializer_class, _many_=False, skip_none=kwargs.get('skip_none', True))
 
     def wrapper(func):
         doc = {
