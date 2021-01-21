@@ -127,7 +127,7 @@ class ESMixin:
                 else:
                     return item
             for sign in signs:
-                _replace(data_json, sign)
+                data_json = _replace(data_json, sign)
             if data_json_ == data_json:
                 return None
             return data_json
