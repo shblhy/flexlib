@@ -13,11 +13,11 @@ class Document(Document_):
     # eg. meta_config = {'index': get_es_index("deal"), 'client': es, 'mongo_cls': Deal}
     # es的index 应该配置一个字符串，但往往使用方法来提供而非写死，原因是es数据库量少（贵），多个环境会使用相同的index
     def save(self, validate=False, **kwargs):
-        return super(Document_, self).save(validate=validate, **kwargs, using=self.meta_config["client"])
+        return super(Document, self).save(validate=validate, **kwargs, using=self.meta_config["client"])
 
     @classmethod
     def init(cls, **kwargs):
-        return super(Document_, cls).init(using=cls.meta_config["client"], index=cls.meta_config["index"])
+        return super(Document, cls).init(using=cls.meta_config["client"], index=cls.meta_config["index"])
 
     @classmethod
     def transfer(cls, obj, serializer_cls=None):
