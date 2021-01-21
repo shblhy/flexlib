@@ -1,6 +1,7 @@
 import json
 import datetime
 import importlib
+from copy import deepcopy
 from elasticsearch_dsl import Document as Document_, Date, Boolean, Keyword
 from elasticsearch_dsl.search import Search
 from exlib.flask_restplus.serializers import ModelSerializer
@@ -71,6 +72,10 @@ class Document(Document_):
     def get_fields(cls):
         return {i[0]: i for i in cls._ObjectBase__list_fields()}
 
+    @classmethod
+    def get_copy_to_fields(cls):
+        return [k for (k, f, b) in cls.get_fields().values() if hasattr(f, 'copy_to') and f.copy_to == 'full_search_by']
+
 
 class ESMixin:
     es_model = ''   # 'app.deal2.models.deal_es.DealES'
@@ -100,19 +105,32 @@ class ESMixin:
 
     @classmethod
     def gen_highlight_data(cls, objs, highlight_dict, serializer=None):
-        def _replace_sign_data(data_json, signs):
-            s = json.dumps(data_json)
-            exist = False
+        def _replace_sign_data(data_json_, signs):
+            data_json = deepcopy(data_json_)
+            def _replace(item, sign):
+                if isinstance(item, dict):
+                    for k, v in item.items():
+                        if type(v) is list:
+                            item[k] = _replace(v, sign)
+                        elif type(v) is list:
+                            for _index, i in v:
+                                v[_index] = _replace(i, sign)
+                        elif type(item) is str:
+                            item[k] = v.replace(sign, '<em>' + sign + '</em>')
+                    return item
+                elif type(item) is list:
+                    for _index, i in enumerate(item):
+                        item[_index] = _replace(i, sign)
+                    return item
+                elif type(item) is str:
+                    return item.replace(sign, '<em>' + sign + '</em>')
+                else:
+                    return item
             for sign in signs:
-                if json.encoder.encode_basestring_ascii(sign)[1:-1] in s:
-                    if exist is False:
-                        exist = True
-                    s = s.replace(json.encoder.encode_basestring_ascii(sign)[1:-1],
-                              json.encoder.encode_basestring_ascii('<em>' + sign + '</em>')[1:-1])
-            if exist:
-                return json.loads(s)
-            else:
+                _replace(data_json, sign)
+            if data_json_ == data_json:
                 return None
+            return data_json
 
         for obj in objs:
             if serializer is None:
