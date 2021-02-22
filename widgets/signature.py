@@ -38,6 +38,7 @@ class Signature(object):
 
 def program_authentication_required(func):
     """基于以上鉴权的装饰器方法"""
+
     @wraps(func)
     def decorated_view(*args, **kwargs):
         identify = request.environ.get('HTTP_IDENTIFY', '')
@@ -50,3 +51,27 @@ def program_authentication_required(func):
         return func(*args, **kwargs)
 
     return decorated_view
+
+
+def signature_required(*params):
+    def wrapper(func):
+        project, action = params
+
+        @wraps(func)
+        def decorated_view(*args, **kwargs):
+            identify = request.environ.get('HTTP_IDENTIFY', '')
+            try:
+                dic = dict([i.split('=') for i in identify.split('&')])
+                if project != dic.get('secret_id'):
+                    raise Unauthorized(description='project error:' + str(dic))
+                if action != dic.get('action'):
+                    raise Unauthorized(description='action error:' + str(dic))
+                if not Signature.check_right(**dic):
+                    raise Unauthorized(description='signature failed:' + str(dic))
+            except Exception as e:
+                raise Unauthorized(description='signature failed:' + str(e))
+            return func(*args, **kwargs)
+
+        return decorated_view
+
+    return wrapper
