@@ -77,10 +77,13 @@ class DocumentMixin:
     def update_document(document, data_dict):
         def field_value(field, value):
             if field.__class__ in (fields.ListField, fields.SortedListField):
-                return [
-                    field_value(field.field, item)
-                    for item in value
-                ]
+                if value is None:
+                    return None
+                else:
+                    return [
+                        field_value(field.field, item)
+                        for item in value
+                    ]
             if field.__class__ in (
                     fields.ReferenceField,
             ) and type(value) in (ObjectId, str):
@@ -114,8 +117,7 @@ class DocumentMixin:
                         field_value(field, value)
                     )
             except Exception as e:
-                print('err field %s - value %s' % (key, str(value)))
-                raise Exception('err field %s - value %s' % (key, str(value)))
+                raise Exception('err field %s - value %s | %s' % (key, str(value), str(e)))
 
     @classproperty
     def _class_name_(cls):
