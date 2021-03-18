@@ -153,9 +153,7 @@ class ESMixin:
         return objs
 
     def sync_es_save(self, **kwargs):
-        res = super(self.__class__, self).save(**kwargs)
         es_model = self.get_es_model()
         es_serializer = self.get_es_serializer()
         es = es_model.transfer(self, es_serializer)
         es.save()
-        return res
