@@ -113,7 +113,10 @@ class History:
 
     @property
     def content_obj(self):
-        return self.document_type(**self.content)
+        obj = self.document_type()
+        obj.update_with(self.content, ignore_fields=[])
+        return obj
+        # return self.document_type(**self.content)
 
     @property
     def _content_(self):

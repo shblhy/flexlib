@@ -27,6 +27,14 @@ class ValidationErrorEncoder(json.JSONEncoder):
 
 
 class ConditionValidatorMixin:
+    """
+        条件校验及条件Schema:
+        依据不同的规则（用户权限、用户与数据的关系），进行不同的校验，或提供不同的Schema
+        权限和条件类可变逻辑难于记忆，故强制要求在代码里写明判定逻辑，并在schema接口返回描述到前端。
+    """
+    rules_desc = {
+
+    }
     validate_conf = {}
 
     def validate_according_to(self, action):
