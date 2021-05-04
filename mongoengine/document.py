@@ -1,7 +1,7 @@
 import uuid
 from copy import deepcopy, copy
 from bson import ObjectId
-from mongoengine import fields, EmbeddedDocumentField, ReferenceField, DateTimeField, DateField, ListField, Document, EmbeddedDocument
+from mongoengine import fields, EmbeddedDocumentField, EmbeddedDocumentListField, ReferenceField, DateTimeField, DateField, ListField, Document, EmbeddedDocument, StringField
 from mongoengine.base.metaclasses import DocumentMetaclass, TopLevelDocumentMetaclass
 try:
     from dateutil import parser
@@ -91,6 +91,8 @@ class DocumentMixin:
                             for ind,ite in enumerate(v):
                                 dest[cls_key][ind] = {}
                                 _parse_data(dest[cls_key][ind], deepcopy(ite), next_cls)
+                        elif isinstance(field.field, StringField):
+                            dest[cls_key] = [str(i) for i in v]
                         else:
                             for ind, ite in enumerate(v):
                                 dest[cls_key][ind] = field.field(**ite)
@@ -156,8 +158,8 @@ class DocumentMixin:
         for key, value in data_dict.items():
             try:
                 field = document._fields[key]
-                if isinstance(field, (EmbeddedDocumentField, ReferenceField)) and value is None:
-                    continue
+                if isinstance(field, (EmbeddedDocumentField, ReferenceField, ListField, EmbeddedDocumentListField)) and value is None:
+                    setattr(document, key, None)
                 else:
                     setattr(
                         document, key,
