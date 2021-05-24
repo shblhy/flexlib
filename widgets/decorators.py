@@ -120,7 +120,8 @@ def request_logging(func):
                 agent=request.user_agent.string,
                 user_db_id=str(current_user.id) if (current_user and not current_user.is_anonymous) else "",
                 user_name=current_user.name.encode("utf-8") if (current_user and not current_user.is_anonymous) else "",
-                payload=json.dumps(payload, ensure_ascii=False)
+                payload=json.dumps(payload, ensure_ascii=False),
+                company_id=str(current_user.company_id) if (current_user and not current_user.is_anonymous) else ""
             )
             current_app.access_log.info(logging_dict)
         return func(*args, **kwargs)
