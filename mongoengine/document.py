@@ -193,3 +193,6 @@ class DocumentMixin:
         """
         if k in self.__dict__:
             del self.__dict__[k]
+
+    def has_cached_property(self, k):
+        return k in self.__dict__
