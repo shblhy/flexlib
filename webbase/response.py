@@ -43,6 +43,15 @@ class FailedResponse(JsonResponse):
         if data is not None:
             res['data'] = data
         super(FailedResponse, self).__init__(res)
+# todo@hy 写错的代码，用下面的ErrResponse替换之
+
+
+class ErrResponse(JsonResponse):
+    def __init__(self, message, data=None, status=400):
+        res = {'message': message}
+        if data is not None:
+            res['data'] = data
+        super(ErrResponse, self).__init__(res, status=status)
 
 
 class TableResponse(JsonResponse):

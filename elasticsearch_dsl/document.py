@@ -7,18 +7,7 @@ from elasticsearch_dsl.search import Search
 from exlib.flask_restplus.serializers import ModelSerializer
 
 
-class Document(Document_):
-    meta_config = None
-
-    # eg. meta_config = {'index': get_es_index("deal"), 'client': es, 'mongo_cls': Deal}
-    # es的index 应该配置一个字符串，但往往使用方法来提供而非写死，原因是es数据库量少（贵），多个环境会使用相同的index
-    def save(self, validate=False, **kwargs):
-        return super(Document, self).save(validate=validate, **kwargs, using=self.meta_config["client"])
-
-    @classmethod
-    def init(cls, **kwargs):
-        return super(Document, cls).init(using=cls.meta_config["client"], index=cls.meta_config["index"])
-
+class DocumentMixin:
     @classmethod
     def transfer(cls, obj, serializer_cls=None):
         if not isinstance(obj, cls.meta_config['mongo_cls']):
@@ -32,19 +21,10 @@ class Document(Document_):
             serializer_cls = Serializer
         fields = cls.get_fields()
         meta_data = {item: None for item in obj.__class__._fields.keys()}
-        meta_data.update(serializer_cls(obj, _many_=False).data)
+        meta_data.update(serializer_cls(obj, _many_=False, _skip_none_=False).data)
         data = {"_id": str(meta_data.get("id"))}
         data.update({key: meta_data.get(key) for key in meta_data if key in fields})
         return cls(**data)
-
-    @classmethod
-    def search(cls, extra={}):
-        return Search(
-            using=cls.meta_config["client"],
-            index=cls.meta_config["index"],
-            doc_type=[cls],
-            extra=extra
-        )
 
     @classmethod
     def get_sorted_mongo_objs(cls, ids):
@@ -53,20 +33,6 @@ class Document(Document_):
         objs = mongo_cls.objects(id__in=ids)
         res = {str(o.id): o for o in objs}
         return [res[str(i)] for i in ids if str(i) in res]
-
-    @classmethod
-    def get(cls, id, **kwargs):
-        return Document_.get(id, using=cls.meta_config["client"], index=cls.meta_config["index"])
-
-    @classmethod
-    def mget(cls, docs, **kwargs):
-        return Document_.mget(docs, using=cls.meta_config["client"], index=cls.meta_config["index"])
-
-    def delete(self, **kwargs):
-        return Document_.delete(self, using=self.meta_config["client"], index=self.meta_config["index"])
-
-    def update(self, **kwargs):
-        return Document_.update(self, using=self.meta_config["client"], index=self.meta_config["index"])
 
     @classmethod
     def get_fields(cls):
