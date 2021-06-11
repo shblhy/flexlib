@@ -139,7 +139,10 @@ class DocumentMixin:
                 return field.document_type.objects.get(pk=value)
             elif field.__class__ in (DateTimeField, DateField):
                 if type(value) is str:
-                    return parser.parse(value)
+                    if field.__class__ is DateField:
+                        return parser.parse(value).date()
+                    else:
+                        return parser.parse(value)
                 else:
                     return value
             elif field.__class__ in (
