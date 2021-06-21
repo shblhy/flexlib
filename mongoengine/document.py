@@ -1,7 +1,7 @@
 import uuid
 from copy import deepcopy, copy
 from bson import ObjectId
-from mongoengine import fields, EmbeddedDocumentField, EmbeddedDocumentListField, ReferenceField, DateTimeField, DateField, ListField, Document, EmbeddedDocument, StringField
+from mongoengine import fields, EmbeddedDocumentField, EmbeddedDocumentListField, ReferenceField, DateTimeField, DateField, ListField, Document, StringField
 from mongoengine.base.metaclasses import DocumentMetaclass, TopLevelDocumentMetaclass
 from mongoengine.queryset import QuerySet
 try:
@@ -209,14 +209,32 @@ class DocumentMixin:
     def fill_refer(self, refer_cls, source=None, fields_dic=None):
         if fields_dic is None:
             ref_fields = self.__class__.get_reference_fields(refer_cls)
-            fields_dic = {f: self.__class__._fields[f] for f in ref_fields}
+            fields_dic = {f: self.__class__._fields[f] for f in ref_fields if '.' not in f}
+        else:
+            ref_fields = list(fields_dic.keys())
         if source is None:
-            source = self.get_all_ref_obj_dict(refer_cls, fields_dic)
+            source = self.get_all_ref_obj_dict(refer_cls, ref_fields)
         for field_key, field in fields_dic.items():
-            if isinstance(field, ListField) and isinstance(field.field, ReferenceField):
-                self._data[field_key] = [source[dbref.id] for dbref in self._data[field_key]]
-            else:
-                self._data[field_key] = source[self._data[field_key].id]
+            if '.' not in field_key:
+                if isinstance(field, ListField) and isinstance(field.field, ReferenceField):
+                    self._data[field_key] = [source[dbref.id] for dbref in self._data[field_key]]
+                else:
+                    self._data[field_key] = source[self._data[field_key].id]
+        suffix_dic = {}
+        for field_key in ref_fields:
+            if '.' in field_key:
+                attr, suffix = field_key.split('.', 1)
+                if attr not in suffix_dic:
+                    suffix_dic[attr] = [suffix]
+                else:
+                    suffix_dic[attr].append(suffix)
+        for attr, suffix in suffix_dic.items():
+            if attr in self._data:
+                if isinstance(self._data[attr], list):
+                    for x in self._data[attr]:
+                        x.fill_refer(refer_cls, source)
+                else:
+                    self._data[attr].fill_refer(refer_cls, source)
 
     @classmethod
     def fill_qs_refer(cls, qs_list, refer_cls,  source=None) -> list:
@@ -227,20 +245,15 @@ class DocumentMixin:
         if not isinstance(qs_list, list):
             raise Exception('只接受数组型参数，QuerySet请自行转化为数组')
         ref_fields = cls.get_reference_fields(refer_cls)
-        fields_dic = {f: cls._fields[f] for f in ref_fields}
+        fields_dic = cls.get_reference_fields_dic(refer_cls)
         if source is None:
             ids = set()
             for d in qs_list:
-                for i in d.get_all_ref_ids(fields_dic):
+                for i in d.get_all_ref_ids(ref_fields):
                     ids.add(i)
             source = {i.id: i for i in refer_cls.objects(id__in=ids)}
         for d in qs_list:
-            for field_key, field in fields_dic.items():
-                if isinstance(field, ListField) and isinstance(field.field, ReferenceField):
-                    d._data[field_key] = [source[dbref.id] for dbref in d._data[field_key] if field_key in d._data]
-                else:
-                    if field_key in d._data:
-                        d._data[field_key] = source[d._data[field_key].id]
+            d.fill_refer(refer_cls, source, fields_dic)
 
     @classmethod
     def get_reference_fields(cls, target_cls=None):
@@ -258,22 +271,60 @@ class DocumentMixin:
             if (isinstance(v, ReferenceField) and v.document_type is target_cls) or \
                     (isinstance(v, ListField) and isinstance(v.field,ReferenceField) and v.field.document_type is target_cls):
                 res.append(f)
+            elif isinstance(v, EmbeddedDocumentField):
+                if hasattr(v.document_type, 'get_reference_fields'):
+                    ref = v.document_type.get_reference_fields(target_cls)
+                    if ref:
+                        for _i in ref:
+                            res.append('%s.%s' % (f, _i))
+            elif isinstance(v, ListField) and isinstance(v.field,EmbeddedDocumentField):
+                if hasattr(v.field.document_type, 'get_reference_fields'):
+                    ref = v.field.document_type.get_reference_fields(target_cls)
+                    if ref:
+                        for _i in ref:
+                            res.append('%s.%s' % (f, _i))
         setattr(cls, key, res)
         return res
 
-    def get_all_ref_ids(self, fields_dic):
+    @classmethod
+    def get_reference_fields_dic(cls, target_cls=None):
+        """
+            target_cls = None -> {'key':cls}
+            target_cls -> ['key']
+        :param target_cls:
+        :return:
+        """
+        fields = cls.get_reference_fields(target_cls)
+        return {f: get_field(cls, f) for f in fields}
+
+    def get_all_ref_ids(self, fields):
         ids = []
-        for field_key, field in fields_dic.items():
-            dbref = self._data[field_key] if field_key in self._data else None
-            if dbref:
-                if isinstance(dbref, list):
-                    ids.extend([i.id for i in dbref])
+        suffix_dic = {}
+        for field_key in fields:
+            if '.' not in field_key:
+                dbref = self._data[field_key] if field_key in self._data else None
+                if dbref:
+                    if isinstance(dbref, list):
+                        ids.extend([i.id for i in dbref])
+                    else:
+                        ids.append(dbref.id)
+            else:
+                attr, suffix = field_key.split('.', 1)
+                if attr not in suffix_dic:
+                    suffix_dic[attr] = [suffix]
                 else:
-                    ids.append(dbref.id)
+                    suffix_dic[attr].append(suffix)
+        for attr, suffix in suffix_dic.items():
+            if attr in self._data:
+                if isinstance(self._data[attr], list):
+                    for x in self._data[attr]:
+                        ids.extend(x.get_all_ref_ids(suffix))
+                else:
+                    ids.extend(self._data[attr].get_all_ref_ids(suffix))
         return ids
 
-    def get_all_ref_obj_dict(self, refer_cls, fields_dic):
-        ids = self.get_all_ref_ids(fields_dic)
+    def get_all_ref_obj_dict(self, refer_cls, ref_fields):
+        ids = self.get_all_ref_ids(ref_fields)
         res = refer_cls.objects(id__in=ids)
         return {i.id: i for i in res}
 
