@@ -4,10 +4,9 @@ from collections import OrderedDict
 import six
 from flask_restplus import fields as frp_fields
 from flask_restplus.fields import Raw
-from flask_restplus.inputs import datetime_from_iso8601, datetime_from_rfc822
 from exlib.widgets.decorators import cached_property
 from flask_restplus.marshalling import marshal
-from ..config import CURRENT_REST_PLUS_CONFIG
+from .fields import DateLocal
 from .formats import Model
 import logging
 logger = logging.getLogger(__name__)
@@ -69,12 +68,33 @@ class Serializer(object):
             self._fields = OrderedDict([])
             for key, value in self.get_fields().items():
                 self._fields[key] = value
+                if hasattr(self, 'get_%s' % key):
+                    value.attribute = '__func__%s' % key
         return self._fields
+
+    def parse_data_item(self, obj):
+        for field in self.fields:
+            if hasattr(self, 'get_%s' % field):
+                func = getattr(self, 'get_%s' % field)
+                setattr(obj, '__func__%s' % field, func(obj, field))
+
+    def prepare_data(self):
+        """parse_data_item进行数据准备，以免在marshal data时重复查询数据库"""
+        return
+
+    def handle_data(self):
+        if not self.many:
+            self.parse_data_item(self._instance_)
+        else:
+            for i in self._instance_:
+                self.parse_data_item(i)
 
     @property
     def data(self):
         if not self._instance_:
             return [] if self.many else {}
+        self.prepare_data()
+        self.handle_data()
         if not self.many:
             return marshal(self._instance_, self.fields, ordered=True, skip_none=self.skip_none)
         else:
@@ -91,6 +111,8 @@ class Serializer(object):
 
     def table(self, **kwargs):
         from exlib.flask_restplus.formats import Table
+        self.prepare_data()
+        self.handle_data()
         return Table(
             _serializer_=self,
             **kwargs
@@ -111,116 +133,13 @@ class Serializer(object):
         )
 
 
-from flask_restplus.fields import DateTime
-from dateutil import tz
-import datetime
-
-
-class DateBeijin(DateTime):
-    """
-        todo@hy 毫无优雅感的实现 待修改
-    """
-    def parse(self, value):
-        new_value = super().parse(value)
-        if new_value is None:
-            return None
-        elif isinstance(new_value, str):
-            parser = datetime_from_iso8601 if self.dt_format == 'iso8601' else datetime_from_rfc822
-            return parser(new_value)
-        elif isinstance(new_value, datetime.datetime):
-            new_value = new_value.replace(tzinfo=tz.gettz("UTC")).astimezone(tz.gettz("HongKong"))
-            return new_value
-        elif isinstance(new_value, datetime.date):
-            return datetime.datetime(new_value.year, new_value.month, new_value.day)
-        else:
-            raise ValueError('Unsupported DateTime format')
-
-
-def get_base_fields_by_pw_field(pw_field):
-    import peewee as pw
-    FieldsMapping = dict([(pw.AutoField, frp_fields.Integer),
-                          (pw.BareField, frp_fields.String),
-                          (pw.BigAutoField, frp_fields.Integer),
-                          (pw.BigBitField, frp_fields.String),
-                          (pw.BigIntegerField, frp_fields.Integer),
-                          (pw.BinaryUUIDField, frp_fields.String),
-                          (pw.BitField, frp_fields.String),
-                          (pw.BlobField, frp_fields.String),
-                          (pw.BooleanField, frp_fields.Boolean),
-                          (pw.CharField, frp_fields.String),
-                          (pw.DateField, frp_fields.Date),
-                          (pw.DateTimeField, frp_fields.DateTime),
-                          (pw.DecimalField, frp_fields.Decimal),
-                          (pw.DoubleField, frp_fields.Decimal),
-                          (pw.FixedCharField, frp_fields.String),
-                          (pw.FloatField, frp_fields.Float),
-                          # (pw.ForeignKeyField, frp_fields.)
-                          (pw.IntegerField, frp_fields.Integer),
-                          (pw.IPField, frp_fields.String),
-                          # (pw.ManyToManyField, frp_fields)
-                          (pw.SmallIntegerField, frp_fields.Integer),
-                          (pw.TextField, frp_fields.String),
-                          (pw.TimeField, frp_fields.DateTime),
-                          (pw.TimestampField, frp_fields.Integer),
-                          (pw.UUIDField, frp_fields.String)])
-    return FieldsMapping.get(type(pw_field), frp_fields.String)
-
-
-def get_base_fields_by_mge_field(mongo_field):
-    """
-        mongo中出现了嵌套field，list可处理，dict及对象嵌套无法处理会报异常
-    :param mongo_field:
-    :return:
-    """
-    STRICT_CHECK = False
-    import mongoengine as mge
-    fields = []
-    while isinstance(mongo_field, mge.ListField):
-        fields.append(frp_fields.List)
-        mongo_field = mongo_field.field or mge.StringField()
-    if isinstance(mongo_field, mge.EmbeddedDocumentField):
-        fields.append(frp_fields.Nested(ModelSerializer.get_all_fields_model(mongo_field.document_type_obj)))
-        res = fields[0]
-        for f in fields[1:]:
-            res = res(f)
-        return res
-
-    if CURRENT_REST_PLUS_CONFIG.config.timezone == "BEIJING":
-        datetimefield = DateBeijin
-    else:
-        datetimefield = frp_fields.DateTime
-
-    FieldsMapping = dict([(mge.StringField, frp_fields.String),
-                          (mge.URLField, frp_fields.String),
-                          (mge.EmailField, frp_fields.String),
-                          (mge.IntField, frp_fields.Integer),
-                          (mge.LongField, frp_fields.Integer),
-                          (mge.FloatField, frp_fields.Float),
-                          (mge.DecimalField, frp_fields.Float),
-                          (mge.BooleanField, frp_fields.Boolean),
-                          (mge.DateField, frp_fields.Date),
-                          (mge.DateTimeField, datetimefield),
-                          (mge.ComplexDateTimeField, frp_fields.DateTime),
-                          (mge.ObjectIdField, frp_fields.String)
-                          # todo mongoengine 有一堆不容易获取的类型
-                          ])
-    if STRICT_CHECK and not mongo_field in FieldsMapping:
-        raise Exception("复杂field对象必须自定义Field")
-    fields.append(FieldsMapping.get(type(mongo_field), frp_fields.String))
-    if len(fields) == 1:
-        return fields[0]
-    res = fields[0]
-    for f in fields[1:]:
-        res = res(f)
-    return res
-
-
 # import sqlalchemy
 class ModelSerializer(Serializer):
     """
         对象序列化，支持peewee,sqlalchemy等多种orm
     """
     model_class = None
+    default_datetimefield = DateLocal
 
     def __init__(self, instance=None, **kwargs):
         """
@@ -263,21 +182,21 @@ class ModelSerializer(Serializer):
 
     def get_mapping_field_func(self):
         funcs = {
-            'peewee': get_base_fields_by_pw_field,
-            'mongo': get_base_fields_by_mge_field,
+            'peewee': self.__class__.get_base_fields_by_pw_field,
+            'mongo': self.__class__.get_base_fields_by_mge_field,
             'sqlalchemy': None
         }
         return funcs[self.engine]
 
-    @staticmethod
-    def get_all_fields_model(cls):
+    @classmethod
+    def get_all_fields_model(cls, target_cls):
         """
             仅支持mongoengine
         :param cls:
         :return:
         """
-        name = 'EmbeddedDocument %s' % (cls.__name__,)
-        return Model(name, {key: get_base_fields_by_mge_field(cls._fields[key]) for key in cls._fields})
+        name = 'EmbeddedDocument %s' % (target_cls.__name__,)
+        return Model(name, {key: cls.get_base_fields_by_mge_field(target_cls._fields[key]) for key in target_cls._fields})
 
     def get_all_fields_func(self):
         funcs = {
@@ -425,4 +344,76 @@ class ModelSerializer(Serializer):
                 except:
                     logger.error("error marshal key: %s id: %s" % (key, item.pk))
 
+    @classmethod
+    def get_base_fields_by_pw_field(cls, pw_field):
+        import peewee as pw
+        FieldsMapping = dict([(pw.AutoField, frp_fields.Integer),
+                              (pw.BareField, frp_fields.String),
+                              (pw.BigAutoField, frp_fields.Integer),
+                              (pw.BigBitField, frp_fields.String),
+                              (pw.BigIntegerField, frp_fields.Integer),
+                              (pw.BinaryUUIDField, frp_fields.String),
+                              (pw.BitField, frp_fields.String),
+                              (pw.BlobField, frp_fields.String),
+                              (pw.BooleanField, frp_fields.Boolean),
+                              (pw.CharField, frp_fields.String),
+                              (pw.DateField, frp_fields.Date),
+                              (pw.DateTimeField, frp_fields.DateTime),
+                              (pw.DecimalField, frp_fields.Decimal),
+                              (pw.DoubleField, frp_fields.Decimal),
+                              (pw.FixedCharField, frp_fields.String),
+                              (pw.FloatField, frp_fields.Float),
+                              # (pw.ForeignKeyField, frp_fields.)
+                              (pw.IntegerField, frp_fields.Integer),
+                              (pw.IPField, frp_fields.String),
+                              # (pw.ManyToManyField, frp_fields)
+                              (pw.SmallIntegerField, frp_fields.Integer),
+                              (pw.TextField, frp_fields.String),
+                              (pw.TimeField, frp_fields.DateTime),
+                              (pw.TimestampField, frp_fields.Integer),
+                              (pw.UUIDField, frp_fields.String)])
+        return FieldsMapping.get(type(pw_field), frp_fields.String)
 
+    @classmethod
+    def get_base_fields_by_mge_field(cls, mongo_field):
+        """
+            mongo中出现了嵌套field，list可处理，dict及对象嵌套无法处理会报异常
+        :param mongo_field:
+        :return:
+        """
+        STRICT_CHECK = False
+        import mongoengine as mge
+        fields = []
+        while isinstance(mongo_field, mge.ListField):
+            fields.append(frp_fields.List)
+            mongo_field = mongo_field.field or mge.StringField()
+        if isinstance(mongo_field, mge.EmbeddedDocumentField):
+            fields.append(frp_fields.Nested(ModelSerializer.get_all_fields_model(mongo_field.document_type_obj)))
+            res = fields[0]
+            for f in fields[1:]:
+                res = res(f)
+            return res
+
+        FieldsMapping = dict([(mge.StringField, frp_fields.String),
+                              (mge.URLField, frp_fields.String),
+                              (mge.EmailField, frp_fields.String),
+                              (mge.IntField, frp_fields.Integer),
+                              (mge.LongField, frp_fields.Integer),
+                              (mge.FloatField, frp_fields.Float),
+                              (mge.DecimalField, frp_fields.Float),
+                              (mge.BooleanField, frp_fields.Boolean),
+                              (mge.DateField, frp_fields.Date),
+                              (mge.DateTimeField, cls.default_datetimefield),
+                              (mge.ComplexDateTimeField, frp_fields.DateTime),
+                              (mge.ObjectIdField, frp_fields.String)
+                              # todo mongoengine 有一堆不容易获取的类型
+                              ])
+        if STRICT_CHECK and mongo_field not in FieldsMapping:
+            raise Exception("复杂field对象必须自定义Field")
+        fields.append(FieldsMapping.get(type(mongo_field), frp_fields.String))
+        if len(fields) == 1:
+            return fields[0]
+        res = fields[0]
+        for f in fields[1:]:
+            res = res(f)
+        return res

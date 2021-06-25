@@ -215,11 +215,14 @@ class DocumentMixin:
         if source is None:
             source = self.get_all_ref_obj_dict(refer_cls, ref_fields)
         for field_key, field in fields_dic.items():
-            if '.' not in field_key:
-                if isinstance(field, ListField) and isinstance(field.field, ReferenceField):
-                    self._data[field_key] = [source[dbref.id] for dbref in self._data[field_key]]
-                else:
-                    self._data[field_key] = source[self._data[field_key].id]
+            try:
+                if '.' not in field_key:
+                    if isinstance(field, ListField) and isinstance(field.field, ReferenceField):
+                        self._data[field_key] = [source[dbref.id] for dbref in self._data[field_key]]
+                    elif self._data.get(field_key):
+                        self._data[field_key] = source[self._data[field_key].id]
+            except Exception as e:
+                raise e
         suffix_dic = {}
         for field_key in ref_fields:
             if '.' in field_key:
