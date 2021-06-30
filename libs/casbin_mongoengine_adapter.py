@@ -1,10 +1,9 @@
 # copy from https://github.com/zhangbailong945/mongoengine_adapter/blob/master/casbin_mongoengine_adapter/adapter.py
-import casbin
 from casbin import persist
 from mongoengine import Document
-from mongoengine import connect
 from mongoengine.fields import IntField, StringField
 from werkzeug.local import LocalProxy
+from exlib.flex import current_flex
 
 
 class CasbinRule(Document):
@@ -48,12 +47,7 @@ class CasbinRule(Document):
         return '<CasbinRule :"{}">'.format(str(self))
 
 
-def _get_current_casbin_rule_cls():
-    from ..config import CURRENT_REST_PLUS_CONFIG
-    return CURRENT_REST_PLUS_CONFIG.casbin_rule_cls
-
-
-CurrentCasbinRule = LocalProxy(lambda: _get_current_casbin_rule_cls())
+CurrentCasbinRule = LocalProxy(lambda: current_flex.casbin_rule_cls)
 
 
 class Adapter(persist.Adapter):

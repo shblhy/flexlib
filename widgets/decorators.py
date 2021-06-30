@@ -38,7 +38,10 @@ class ClassPropertyDescriptor(object):
     def __get__(self, obj, klass=None):
         if klass is None:
             klass = type(obj)
-        return self.fget.__get__(obj, klass)()
+        try:
+            return self.fget.__get__(obj, klass)()
+        except Exception as e:
+            raise e
 
     def __set__(self, obj, value):
         if not self.fset:
@@ -53,7 +56,7 @@ class ClassPropertyDescriptor(object):
         return self
 
 
-def classproperty(func):
+def class_property(func):
     """
         类似于 classmethod 不过是属性不是方法
     """
@@ -70,6 +73,17 @@ class ClassPropertyMetaClass(type):
             return obj.__set__(self, value)
 
         return super(ClassPropertyMetaClass, self).__setattr__(key, value)
+
+
+def singleton(cls):
+    _instance = {}
+
+    def _singleton(*args, **kwargs):
+        if cls not in _instance:
+            _instance[cls] = cls(*args, **kwargs)
+        return _instance[cls]
+
+    return _singleton
 
 
 def func_timer(function):
@@ -120,8 +134,7 @@ def request_logging(func):
                 agent=request.user_agent.string,
                 user_db_id=str(current_user.id) if (current_user and not current_user.is_anonymous) else "",
                 user_name=current_user.name.encode("utf-8") if (current_user and not current_user.is_anonymous) else "",
-                payload=json.dumps(payload, ensure_ascii=False),
-                company_id=str(current_user.company_id) if (current_user and not current_user.is_anonymous) else ""
+                payload=json.dumps(payload, ensure_ascii=False)
             )
             current_app.access_log.info(logging_dict)
         return func(*args, **kwargs)

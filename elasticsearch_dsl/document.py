@@ -1,10 +1,6 @@
-import json
-import datetime
 import importlib
 from copy import deepcopy
-from elasticsearch_dsl import Document as Document_, Date, Boolean, Keyword
-from elasticsearch_dsl.search import Search
-from exlib.flask_restplus.serializers import ModelSerializer
+from ..flask_restplus.serializers import ModelSerializer
 
 
 class DocumentMixin:

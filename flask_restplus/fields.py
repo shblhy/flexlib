@@ -1,6 +1,7 @@
 from datetime import datetime, date, timezone, timedelta
 from flask_restplus import fields
-from flask_restplus.fields import DateTime
+from flask_restplus.fields import Raw, String, FormattedString, Url, DateTime, Date, \
+           Boolean, Integer, Float, Nested, List
 from tzlocal import get_localzone
 from flask_restplus.inputs import datetime_from_iso8601, datetime_from_rfc822
 

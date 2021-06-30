@@ -3,12 +3,12 @@ from copy import deepcopy, copy
 from bson import ObjectId
 from mongoengine import fields, EmbeddedDocumentField, EmbeddedDocumentListField, ReferenceField, DateTimeField, DateField, ListField, Document, StringField
 from mongoengine.base.metaclasses import DocumentMetaclass, TopLevelDocumentMetaclass
-from mongoengine.queryset import QuerySet
+from mongoengine.queryset import queryset_manager
 try:
     from dateutil import parser
 except:
     from dateparser import parser
-from ..widgets.decorators import classproperty
+from ..widgets.decorators import class_property
 
 
 def get_field_cls(cls, key, silent=True):
@@ -42,13 +42,13 @@ def copy_field(_field, **kwargs):
     return new_field
 
 
-def copy_cls(cls, base_cls=None, **kwargs):
+def copy_cls(cls, base_cls=None, class_name=None, **kwargs):
     if not base_cls:
         base_cls = cls.__bases__[0]
     attrs = dict(cls.__dict__)
     attrs.update(kwargs)
     return DocumentMetaclass.__new__(mcs=DocumentMetaclass,
-                                     name='%s%s' % (cls.__name__, uuid.uuid1()),
+                                     name=class_name or '%s%s' % (cls.__name__, uuid.uuid1()),
                                      bases=(base_cls,), attrs=attrs)
 
 
@@ -74,12 +74,21 @@ class DocumentMixin:
     _restruct_ = False
     base_ignore_fields = []
 
+    @queryset_manager
+    def ori_objects(doc_cls, queryset):
+        """原始"""
+        return queryset
+
+    def ori_save(self, **kwargs):
+        return Document.save(self, **kwargs)
+
     @classmethod
     def copy_base_class(cls, base_cls=None, **kwargs):
         return copy_cls(cls, base_cls, **kwargs)
 
     @property
     def db_dict(self):
+        """mongo取出的原数据"""
         return self.to_mongo().to_dict()
 
     def to_dict(self, need_id=False):
@@ -197,7 +206,7 @@ class DocumentMixin:
             except Exception as e:
                 raise Exception('err field %s - value %s | %s' % (key, str(value), str(e)))
 
-    @classproperty
+    @class_property
     def _class_name_(cls):
         return cls.__module__ + '.' + cls.__name__
 
@@ -225,6 +234,10 @@ class DocumentMixin:
 
     def has_cached_property(self, k):
         return k in self.__dict__
+
+    @classmethod
+    def ensure_indexes(cls):
+        return
 
     # ----------------------- reference fields 相关处理 -----------------------
     # LazyReferenceField 必须先fetch后使用,不符合需要的处理方式
@@ -291,7 +304,7 @@ class DocumentMixin:
         :param target_cls:
         :return:
         """
-        key = '__reference_fields_%s' % target_cls.__name__
+        key = '__reference_fields_%s' % target_cls.__name__ if target_cls else '__reference_fields_all'
         if hasattr(cls, key):
             return getattr(cls, key)
         res = []
@@ -356,5 +369,9 @@ class DocumentMixin:
         res = refer_cls.ori_objects(id__in=ids)
         return {i.id: i for i in res}
 
-    def fill_qs_refer_all(self):
-        return
+    @classmethod
+    def fill_qs_refer_all(cls, qs):
+        fields = cls.get_reference_fields()
+        for field in fields:
+            cls.fill_qs_refer(qs, field.document_type)
+        return qs

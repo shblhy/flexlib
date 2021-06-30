@@ -1,6 +1,7 @@
 import copy
 from flask_restplus import fields as frp_fields
-from werkzeug.local import LocalProxy
+from ..flex import current_api
+Model = current_api.model
 
 
 class BaseTable(object):
@@ -131,7 +132,8 @@ class ListResponseMixin:
         model_fields = copy.deepcopy(serializer_cls().fields)
         model = Model('ListItem%s' % (serializer_cls.__name__,), model_fields)
         res.update(format)
-        res['data'] = frp_fields.List(frp_fields.Nested(model, skip_none=kwargs.get('skip_none', False)), attribute='_item')
+        res['data'] = frp_fields.List(frp_fields.Nested(model, skip_none=kwargs.get('skip_none', False)),
+                                      attribute='_item')
         return Model(name, res)
 
 
@@ -139,57 +141,7 @@ class BaseListResponse(BaseResponse, ListResponseMixin):
     pass
 
 
-def _get_base_error_field():
-    from ..config import CURRENT_REST_PLUS_CONFIG
-    api = CURRENT_REST_PLUS_CONFIG.current_api
-    return api.model('error_400', {
-        'code': frp_fields.Integer,
-        'message': frp_fields.String
-    })
-
-
-def _get_skv_error_field():
-    from ..config import CURRENT_REST_PLUS_CONFIG
-    api = CURRENT_REST_PLUS_CONFIG.current_api
-    return api.model('error_400', {
-        'status': frp_fields.Integer,
-        'message': frp_fields.String
-    })
-
-
-def _get_model():
-    from ..config import CURRENT_REST_PLUS_CONFIG
-    api = CURRENT_REST_PLUS_CONFIG.current_api
-    return api.model
-
-
-def get_suc_response():
-    from ..config import CURRENT_REST_PLUS_CONFIG
-    return CURRENT_REST_PLUS_CONFIG.response_cls
-
-
-SucResponse = LocalProxy(lambda: get_suc_response())
-
-
-def get_table_cls():
-    from ..config import CURRENT_REST_PLUS_CONFIG
-    return CURRENT_REST_PLUS_CONFIG.table_cls
-
-
-Table = LocalProxy(lambda: get_table_cls())
-
-
-def get_list_response():
-    from ..config import CURRENT_REST_PLUS_CONFIG
-    return CURRENT_REST_PLUS_CONFIG.list_response_cls
-
-def get_list_response():
-    from ..config import CURRENT_REST_PLUS_CONFIG
-    return CURRENT_REST_PLUS_CONFIG.list_response_cls
-
-
-ListResponse = LocalProxy(lambda: get_list_response())
-BASE_ERROR_FIELD = LocalProxy(lambda: _get_base_error_field())
-SKV_ERROR_FIELD = LocalProxy(lambda: _get_skv_error_field())
-Model = LocalProxy(lambda: _get_model())
-error_fields = LocalProxy(lambda: _get_skv_error_field())
+error_fields = Model('error_400', {
+    'status': frp_fields.Integer,
+    'message': frp_fields.String
+})

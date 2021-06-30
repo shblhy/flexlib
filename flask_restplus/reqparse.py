@@ -36,7 +36,7 @@ DEFAULT_OPER = {
 OPER_LIST_D = {
     "peewee": ['__eq__', '__ge__', '__gt__', '__le__', '__lt__', '__ne__', '__neg__',
                '__new__', 'between', 'cast', 'contains', 'like', 'endswith', 'in_', 'not_in', 'startswith'],
-    "mongo": ['', 'contains', 'gt', 'lt', 'gte', 'lte', 'between', 'like', 'in', 'startswith', 'endswith']
+    "mongo": ['', 'contains', 'icontains', 'gt', 'lt', 'gte', 'lte', 'between', 'like', 'in', 'startswith', 'endswith']
 }
 
 
