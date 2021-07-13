@@ -240,7 +240,7 @@ class DocumentMixin:
                     self._data[attr].fill_refer(refer_cls, source)
 
     @classmethod
-    def fill_qs_refer(cls, qs_list, refer_cls,  source=None) -> list:
+    def fill_qs_refer(cls, qs_list, refer_cls, source=None) -> list:
         """
         :param source:
         :return:
@@ -254,7 +254,7 @@ class DocumentMixin:
             for d in qs_list:
                 for i in d.get_all_ref_ids(ref_fields):
                     ids.add(i)
-            source = {i.id: i for i in refer_cls.objects(id__in=ids)}
+            source = {i.id: i for i in refer_cls.ori_objects(id__in=ids)}
         for d in qs_list:
             d.fill_refer(refer_cls, source, fields_dic)
 
@@ -328,7 +328,7 @@ class DocumentMixin:
 
     def get_all_ref_obj_dict(self, refer_cls, ref_fields):
         ids = self.get_all_ref_ids(ref_fields)
-        res = refer_cls.objects(id__in=ids)
+        res = refer_cls.ori_objects(id__in=ids)
         return {i.id: i for i in res}
 
     def fill_qs_refer_all(self):
