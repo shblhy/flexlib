@@ -52,6 +52,24 @@ def copy_cls(cls, base_cls=None, **kwargs):
                                      bases=(base_cls,), attrs=attrs)
 
 
+def rec_merge(d1, d2):
+    """
+    递归合并字典
+    :param d1: {"a": {"c": 2, "d": 1}, "b": 2}
+    :param d2: {"a": {"c": 1, "f": {"zzz": 2}}, "c": 3, }
+    :return: {'a': {'c': 1, 'd': 1, 'f': {'zzz': 2}}, 'b': 2, 'c': 3}
+    """
+    for key, value in d2.items():
+        if key not in d1:
+            d1[key] = value
+        else:
+            if isinstance(value, dict):
+                rec_merge(d1[key], value)
+            else:
+                d1[key] = value
+    return d1
+
+
 class DocumentMixin:
     _restruct_ = False
     base_ignore_fields = []
@@ -115,13 +133,20 @@ class DocumentMixin:
     def update_with(self, data_dict, ignore_fields=None):
         """
             利用字典内容更新对象。屏蔽掉若干字段。
+            如果是字典，进行merge动作；其它的，如数组，进行替换动作
         :param data_dict:
         :param ignore_fields:
         :return:
         """
         ignore_fields = ignore_fields or self.base_ignore_fields
-        data_dict = {i: data_dict[i] for i in data_dict if i not in ignore_fields}
-        DocumentMixin.update_document(self, data_dict)
+        res_data = self.to_dict()
+        res_data = {key: res_data[key] for key in res_data if key in data_dict}
+        for i in data_dict:
+            if i not in ignore_fields:
+                res_data = rec_merge(res_data, {i: data_dict[i]})
+        DocumentMixin.update_document(self, res_data)
+        # data_dict = {i: data_dict[i] for i in data_dict if i not in ignore_fields}
+        # DocumentMixin.update_document(self, data_dict)
 
     @staticmethod
     def update_document(document, data_dict):
