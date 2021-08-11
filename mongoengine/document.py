@@ -102,6 +102,10 @@ class DocumentMixin:
             del res['_id']
         return res
 
+    def mark_change_fields(self, *keys):
+        for key in keys:
+            self._mark_as_changed(key)
+
     @classmethod
     def parse_db_key(cls, data):
         res = {}
